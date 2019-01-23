@@ -95,6 +95,8 @@ public abstract class AbstractGoCodegen extends DefaultCodegen implements Codege
             .defaultValue("0.0.1"));
         cliOptions.add(new CliOption(CodegenConstants.GO_MODULE, "Go module")
             .defaultValue("github.com/foo/bar"));
+        cliOptions.add(new CliOption(CodegenConstants.SERVICE_NAME, "Simple service name (compatible as a prometheus metric name)")
+            .defaultValue("service_name"));
     }
 
     /**

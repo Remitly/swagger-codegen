@@ -116,6 +116,7 @@ public class CodegenConstants {
     public static final String SERVER_PORT = "serverPort";
     public static final String API_VERSION = "apiVersion";
     public static final String GO_MODULE = "goModule";
+    public static final String SERVICE_NAME = "serviceName";
 
     public static final String PACKAGE_TITLE = "packageTitle";
     public static final String PACKAGE_TITLE_DESC = "Specifies an AssemblyTitle for the .NET Framework global assembly attributes stored in the AssemblyInfo file.";
@@ -162,7 +163,7 @@ public class CodegenConstants {
     public static final String DOTNET_FRAMEWORK = "targetFramework";
     public static final String DOTNET_FRAMEWORK_DESC = "The target .NET framework version.";
 
-    public static enum MODEL_PROPERTY_NAMING_TYPE {camelCase, PascalCase, snake_case, original}
+  public static enum MODEL_PROPERTY_NAMING_TYPE {camelCase, PascalCase, snake_case, original}
     public static enum ENUM_PROPERTY_NAMING_TYPE {camelCase, PascalCase, snake_case, original, UPPERCASE}
 
     public static final String ENUM_PROPERTY_NAMING = "enumPropertyNaming";

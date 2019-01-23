@@ -16,6 +16,7 @@ public class GoClientOptionsProvider implements OptionsProvider {
     public static final String API_VERSION = "0.0.1";
     public static final String GO_MODULE = "github.com/foo/bar";
     public static final String SERVER_PORT = "8080";
+    public static final String SERVICE_NAME = "awesome_service";
 
     @Override
     public String getLanguage() {
@@ -34,6 +35,7 @@ public class GoClientOptionsProvider implements OptionsProvider {
                 .put(CodegenConstants.API_VERSION, API_VERSION)
                 .put(CodegenConstants.GO_MODULE, GO_MODULE)
                 .put(CodegenConstants.SERVER_PORT, SERVER_PORT)
+                .put(CodegenConstants.SERVICE_NAME, SERVER_PORT)
                 .build();
     }
 
