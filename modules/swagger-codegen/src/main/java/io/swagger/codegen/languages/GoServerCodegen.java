@@ -77,8 +77,12 @@ public class GoServerCodegen extends AbstractGoCodegen {
             setPackageName("swagger");
         }
 
-        modelPackage = packageName;
-        apiPackage = packageName;
+        if (additionalProperties.containsKey(CodegenConstants.MODEL_PACKAGE)) {
+            setModelPackage((String) additionalProperties.get(CodegenConstants.MODEL_PACKAGE));
+        }
+        else {
+            setModelPackage("swagger");
+        }
 
         /*
          * Supporting Files.  You can write single files for the generator with the
@@ -87,10 +91,12 @@ public class GoServerCodegen extends AbstractGoCodegen {
          */
         supportingFiles.add(new SupportingFile("swagger.mustache", "api", "swagger.yaml"));
         supportingFiles.add(new SupportingFile("main.mustache", "", "main.go"));
-        supportingFiles.add(new SupportingFile("routers.mustache", ((String) additionalProperties.get(CodegenConstants.API_PATH)), "routers.go"));
-        supportingFiles.add(new SupportingFile("logger.mustache",  ((String) additionalProperties.get(CodegenConstants.API_PATH)), "logger.go"));
+        supportingFiles.add(new SupportingFile("customconfig.mustache", "service", "customconfig.go"));
+        supportingFiles.add(new SupportingFile("bootstrap.mustache", modelPackage(), "bootstrap.go"));
+        supportingFiles.add(new SupportingFile("routers.mustache", modelPackage(), "routers.go"));
+        supportingFiles.add(new SupportingFile("logger.mustache",  modelPackage(), "logger.go"));
         supportingFiles.add(new SupportingFile("go-mod.mustache",  "go.mod"));
-        writeOptional(outputFolder, new SupportingFile("README.mustache", ((String) additionalProperties.get(CodegenConstants.API_PATH)), "README.md"));
+        writeOptional(outputFolder, new SupportingFile("README.mustache", apiPackage(), "README.md"));
     }
 
     @Override
@@ -143,7 +149,7 @@ public class GoServerCodegen extends AbstractGoCodegen {
 
     @Override
     public String modelFileFolder() {
-        return outputFolder + File.separator + apiPackage().replace('.', File.separatorChar);
+        return outputFolder + File.separator + modelPackage().replace('.', File.separatorChar);
     }
 
 }
