@@ -2,16 +2,12 @@
 package main
 
 import (
-	"log"
-	"net/http"
-
-	sw "{{goModule}}/{{apiPath}}"
+    "{{goModule}}/{{packageName}}"
 )
 
+
+// Place service specific code in service/api_{name}.go and service/customconfig.go
 func main() {
-	log.Printf("Server started")
-
-	router := sw.NewRouter()
-
-	log.Fatal(http.ListenAndServe(":{{serverPort}}", router))
+    boot := {{packageName}}.Bootstrap{}
+    boot.LaunchServer()
 }

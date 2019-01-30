@@ -1,0 +1,12 @@
+package service
+
+import "github.com/spf13/pflag"
+
+type CustomConfig struct{}
+
+// add application/service specific flags/env vars here
+func (c CustomConfig) LoadApplicationSettings(){
+	pflag.String("custom-app-config-flag", "12345", "enter service specific flags here")
+}
+
+

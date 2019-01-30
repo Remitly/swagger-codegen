@@ -2,11 +2,12 @@
 package {{packageName}}
 
 import (
-	"fmt"
-	"net/http"
-	"strings"
+    "github.com/remitly/tiny-logger-go/log"
+    "net/http"
+    "strings"
 
 	"github.com/gorilla/mux"
+    "{{goModule}}/service"
 )
 
 type Route struct {
@@ -18,12 +19,14 @@ type Route struct {
 
 type Routes []Route
 
-func NewRouter() *mux.Router {
+type MiddleWare func(handler http.Handler) http.Handler
+
+func NewRouter(middleWare MiddleWare) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	for _, route := range routes {
 		var handler http.Handler
 		handler = route.HandlerFunc
-		handler = Logger(handler, route.Name)
+		handler = middleWare(handler)
 
 		router.
 			Methods(route.Method).
@@ -36,7 +39,9 @@ func NewRouter() *mux.Router {
 }
 
 func Index(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello World!")
+    sm := &log.ServiceMetadata{CustomerPublicId: "customerpublicid", Help: "help msg",
+    Message: "a message", RequestId: "requestid", SessionPublicId: "sessionpublicid"}
+    log.WithServiceMetadata(sm).Infof("Index called, hello world (or somesuch)!")
 }
 
 var routes = Routes{
@@ -51,6 +56,6 @@ var routes = Routes{
 		"{{operationId}}",
 		strings.ToUpper("{{httpMethod}}"),
 		"{{{basePathWithoutHost}}}{{{path}}}",
-		{{operationId}},
+		service.{{operationId}},
 	},{{/operation}}{{/operations}}{{/apis}}{{/apiInfo}}
 }
