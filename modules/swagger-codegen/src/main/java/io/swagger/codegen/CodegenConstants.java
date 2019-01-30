@@ -116,6 +116,7 @@ public class CodegenConstants {
     public static final String SERVER_PORT = "serverPort";
     public static final String API_VERSION = "apiVersion";
     public static final String GO_MODULE = "goModule";
+    public static final String SERVICE_NAME = "serviceName";
 
     public static final String PACKAGE_TITLE = "packageTitle";
     public static final String PACKAGE_TITLE_DESC = "Specifies an AssemblyTitle for the .NET Framework global assembly attributes stored in the AssemblyInfo file.";
