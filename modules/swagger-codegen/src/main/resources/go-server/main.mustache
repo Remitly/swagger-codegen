@@ -2,12 +2,12 @@
 package main
 
 import (
-    "{{goModule}}/{{packageName}}"
+    "{{goModule}}/{{packageName}}/runtime"
 )
 
 
 // Place service specific code in service/api_{name}.go and service/customconfig.go
 func main() {
-    boot := {{packageName}}.Bootstrap{}
+    boot := runtime.Bootstrap{}
     boot.LaunchServer()
 }

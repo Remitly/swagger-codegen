@@ -88,12 +88,25 @@ public class GoServerCodegen extends AbstractGoCodegen {
          * Supporting Files.  You can write single files for the generator with the
          * entire object tree available.  If the input file has a suffix of `.mustache
          * it will be processed by the template engine.  Otherwise, it will be copied
+         *
+         * Example generated file layout:
+         *
+         * ├── generated
+         * │   ├── models
+         * │   │   ├── model_department_listings.go
+         * │   │   ├── model_department_summary.go
+         * │   │   ├── model_job_details.go
+         * │   │   └── model_job.go
+         * │   └── runtime
+         * │       ├── bootstrap.go
+         * │       └── routers.go
+         *
          */
         supportingFiles.add(new SupportingFile("swagger.mustache", "api", "swagger.yaml"));
         supportingFiles.add(new SupportingFile("main.mustache", "", "main.go"));
         supportingFiles.add(new SupportingFile("customconfig.mustache", "service", "customconfig.go"));
-        supportingFiles.add(new SupportingFile("bootstrap.mustache", modelPackage(), "bootstrap.go"));
-        supportingFiles.add(new SupportingFile("routers.mustache", modelPackage(), "routers.go"));
+        supportingFiles.add(new SupportingFile("bootstrap.mustache",modelPackage() + File.separator + "runtime", "bootstrap.go"));
+        supportingFiles.add(new SupportingFile("routers.mustache", modelPackage() + File.separator + "runtime", "routers.go"));
         supportingFiles.add(new SupportingFile("go-mod.mustache",  "go.mod"));
         writeOptional(outputFolder, new SupportingFile("README.mustache", apiPackage(), "README.md"));
     }
@@ -148,7 +161,7 @@ public class GoServerCodegen extends AbstractGoCodegen {
 
     @Override
     public String modelFileFolder() {
-        return outputFolder + File.separator + modelPackage().replace('.', File.separatorChar);
+        return outputFolder + File.separator + modelPackage().replace('.', File.separatorChar) + File.separator + "models";
     }
 
 }
