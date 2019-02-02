@@ -86,6 +86,19 @@ func (bs Bootstrap) serviceHTTPServer(svcConfig *viper.Viper) *http.Server {
     }()
 
     log.Infof("Serving {{serviceName}} at http://0.0.0.0:%s", port)
+
+    err := router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
+      tmpl, err := route.GetPathTemplate()
+      if err == nil {
+        log.With("port", port).Infof("route: %s", tmpl)
+      } else {
+        log.With("port", port).With("err", err).Errorf("error walking {{serviceName}} router")
+      }
+      return nil
+    })
+    if err != nil {
+      log.With("port", port).With("err", err).Errorf("error walking {{serviceName}} router")
+    }
     return srv
 }
 
