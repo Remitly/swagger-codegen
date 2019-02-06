@@ -106,7 +106,7 @@ func (bs Bootstrap) serviceHTTPServer(svcConfig *viper.Viper) *http.Server {
 func (bs Bootstrap) healthCheckHTTPServer() *http.Server{
     healthcheck := func ()http.Handler {
         return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-            // [SVC DEVELOPER] create a useful health check here, as this one is (intentionally) going to fail
+            // TODO: Move this to main.go --> create a useful health check here, as this one is (intentionally) going to fail
             http.Error(w, http.StatusText(501), 501)
         })
     }
@@ -197,7 +197,6 @@ func (bs Bootstrap) serviceConfiguration()*viper.Viper{
     pflag.StringP(envPrefix, "e", "SVC", "environment prefix")
     pflag.StringP(allowEmptyEnvVar, "a", "true", "allow empty environment variables")
 
-    // [SVC DEVELOPER] add application/service specific command line flags here
     pflag.StringP(port, "p", "8080", "service port")
     pflag.Float64P(rateLimit, "r", 1000.0, "rate limit (requests/second)")
     pflag.StringP(rateLimitExceeded, "m", "rate limit exceeded", "error message logged when rate limit is exceeded")
@@ -219,7 +218,6 @@ func (bs Bootstrap) serviceConfiguration()*viper.Viper{
     // create service config, bootstrapped from pflags
     svcConfig := viper.New()
 
-    // [SVC DEVELOPER] bind any application/service specific pflags to the svcConfig here
     err = svcConfig.BindPFlags(pflag.CommandLine)
     if err != nil {
         panic(fmt.Errorf("fatal error binding pflag to svcConfig: %s", err))
