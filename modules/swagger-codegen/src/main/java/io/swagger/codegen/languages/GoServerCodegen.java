@@ -108,7 +108,6 @@ public class GoServerCodegen extends AbstractGoCodegen {
         supportingFiles.add(new SupportingFile("bootstrap.mustache",modelPackage() + File.separator + "runtime", "bootstrap.go"));
         supportingFiles.add(new SupportingFile("routers.mustache", modelPackage() + File.separator + "runtime", "routers.go"));
         supportingFiles.add(new SupportingFile("go-mod.mustache",  "go.mod"));
-        writeOptional(outputFolder, new SupportingFile("README.mustache", apiPackage(), "README.md"));
     }
 
     @Override
