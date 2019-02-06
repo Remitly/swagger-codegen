@@ -127,7 +127,7 @@ func (bs Bootstrap) healthCheckHTTPServer() *http.Server{
         }
     }()
 
-    log.Infof("Serving health check at http://0.0.0.0:%s/%s", healthCheckPort, healthCheckPath)
+    log.Infof("Serving health check at http://0.0.0.0:%s%s", healthCheckPort, healthCheckPath)
     return srv
 }
 
@@ -177,7 +177,7 @@ func (bs Bootstrap) prometheusHTTPServer() *http.Server{
         }
     }()
 
-    log.Infof("Serving metrics at http://0.0.0.0:%s/%s", prometheusMetricsPort, prometheusMetricsPath)
+    log.Infof("Serving metrics at http://0.0.0.0:%s%s", prometheusMetricsPort, prometheusMetricsPath)
     return srv
 }
 
