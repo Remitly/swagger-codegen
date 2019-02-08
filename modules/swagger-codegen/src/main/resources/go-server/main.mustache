@@ -4,9 +4,9 @@ package main
 import (
     "github.com/remitly/tiny-logger-go/log"
     "github.com/remitly/tiny-logger-go/log/zero"
-    "net/http"
 
     "{{goModule}}/{{packageName}}/runtime"
+    "{{goModule}}/service"
 )
 
 
@@ -28,7 +28,7 @@ func main() {
 	log.SetLogger(zero.NewDefaultLogger().With(log.KeyServiceName, "{{goModule}}").SetLevel(log.LoggingLevelInfo))
 
 	// this configures a default service (excepting the health check which is configured next)
-	boot := runtime.Bootstrap{}.ConfigureDefaults()
+	boot := runtime.Bootstrap{}.New("{{goModule}}").ConfigureDefaults()
 
 	// configure the health check endpoints
 	health := service.Health{}.New()

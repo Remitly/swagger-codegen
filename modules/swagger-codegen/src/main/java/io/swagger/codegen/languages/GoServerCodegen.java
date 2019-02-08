@@ -104,7 +104,8 @@ public class GoServerCodegen extends AbstractGoCodegen {
          */
         supportingFiles.add(new SupportingFile("swagger.mustache", "api", "swagger.yaml"));
         supportingFiles.add(new SupportingFile("main.mustache", "", "main.go"));
-        supportingFiles.add(new SupportingFile("customconfig.mustache", "service", "customconfig.go"));
+        supportingFiles.add(new SupportingFile("config.mustache", "service", "config.go"));
+        supportingFiles.add(new SupportingFile("health.mustache", "service", "health.go"));
         supportingFiles.add(new SupportingFile("bootstrap.mustache",modelPackage() + File.separator + "runtime", "bootstrap.go"));
         supportingFiles.add(new SupportingFile("routers.mustache", modelPackage() + File.separator + "runtime", "routers.go"));
         supportingFiles.add(new SupportingFile("go-mod.mustache",  "go.mod"));

@@ -9,7 +9,6 @@ import (
     "github.com/prometheus/client_golang/prometheus/promauto"
     "github.com/prometheus/client_golang/prometheus/promhttp"
     "github.com/remitly/tiny-logger-go/log"
-    "github.com/remitly/tiny-logger-go/log/zero"
     "github.com/spf13/pflag"
     "github.com/spf13/viper"
     "golang.org/x/net/context"
@@ -35,6 +34,7 @@ const (
 const (
     bugsnagAPIKey       = "BUGSNAG_API_KEY"
     bugsnagReleaseStage = "BUGSNAG_RELEASE_STAGE"
+
 )
 
 
@@ -96,8 +96,8 @@ type Bootstrap struct {
     PrometheusMetricsHTTPServer *http.Server
 }
 
-func (bs Bootstrap) New() *Bootstrap {
-    return &Bootstrap{}
+func (bs Bootstrap) New(name string) *Bootstrap {
+    return &Bootstrap{Name:name}
 }
 
 func (bs *Bootstrap) ConfigureDefaults() *Bootstrap {
