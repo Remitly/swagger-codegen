@@ -1,12 +1,46 @@
 package service
 
-import "github.com/spf13/pflag"
+import (
+    "github.com/jessevdk/go-flags"
+    "os"
+)
 
-type Config struct{}
+var (
+    config *Config
+)
 
-// add application/service specific flags/env vars here
-func (c Config) LoadApplicationSettings(){
-	pflag.String("custom-app-config-flag", "12345", "enter service specific flags here")
+type Config struct {
+    Port                string  `short:"p" long:"port" description:"Service port" default:"8080"`
+    RateLimit           float64 `short:"r" long:"ratelimit" description:"Rate limit (requests/sec)" default:"1000.0"`
+    Verbose             bool    `short:"v" long:"verbose" description:"Show verbose debug information"`
+    BugsnagAPIKey       string  `short:"k" long:"bugsnag-api-key" description:"Bugsnag API Key"`
+    BugsnagReleaseStage string  `short:"s" long:"bugsnag-release-stage" description:"Bugsnag Release Stage" choice:"preprod" choice:"prod"`
+    // Add service specific flags below
 }
 
+// Exposing the service config as a global. Yes, Globals are evil. Mitigating by making this read-only.
+func GetConfig() *Config {
+    return &Config{
+        Port:                config.Port,
+        RateLimit:           config.RateLimit,
+        Verbose:             config.Verbose,
+        BugsnagAPIKey:       config.BugsnagAPIKey,
+        BugsnagReleaseStage: config.BugsnagReleaseStage,
+        // Add service specific flags below
+    }
+}
+
+func (Config) New() *Config {
+    return &Config{}
+}
+
+func (c *Config) ConfigureServiceSettings() {
+    newConfig := &Config{}
+    _, err := flags.Parse(newConfig)
+    if err != nil {
+        os.Exit(1)
+    }
+    // update the local global var
+    config = newConfig
+}
 

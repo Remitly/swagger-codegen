@@ -9,8 +9,6 @@ import (
     "github.com/prometheus/client_golang/prometheus/promauto"
     "github.com/prometheus/client_golang/prometheus/promhttp"
     "github.com/remitly/tiny-logger-go/log"
-    "github.com/spf13/pflag"
-    "github.com/spf13/viper"
     "golang.org/x/net/context"
     "net/http"
     "os"
@@ -22,19 +20,7 @@ import (
 )
 
 const (
-    configFile        = "CONFIG_FILE"
-    envPrefix         = "ENV_PREFIX"
-    allowEmptyEnvVar  = "ALLOW_EMPTY_ENV_VAR"
-    port              = "PORT"
-    rateLimit         = "RATE_LIMIT"
-    rateLimitExceeded = "RATE_LIMIT_EXCEEDED"
-    verbose           = "VERBOSE"
-)
-
-const (
-    bugsnagAPIKey       = "BUGSNAG_API_KEY"
-    bugsnagReleaseStage = "BUGSNAG_RELEASE_STAGE"
-
+    rateLimitExceeded = "RATE LIMIT EXCEEDED"
 )
 
 
@@ -83,9 +69,6 @@ type Bootstrap struct {
     // used for detecting service flapping
     ServiceStartedCounter prometheus.Counter
 
-    // config
-    ServiceConfig *viper.Viper
-
     // service http server
     ServiceHTTPServer *http.Server
 
@@ -101,73 +84,30 @@ func (bs Bootstrap) New(name string) *Bootstrap {
 }
 
 func (bs *Bootstrap) ConfigureDefaults() *Bootstrap {
-    serviceConfiguration := bs.serviceConfiguration()
+    config := bs.serviceConfig()
     servicesStartedCounter := bs.serviceStartedCounter()
-    serviceHTTPServer := bs.serviceHTTPServer(serviceConfiguration)
+    serviceHTTPServer := bs.serviceHTTPServer(config)
     prometheusHTTPServer := bs.prometheusHTTPServer()
-    bs.configureBugsnag(serviceConfiguration)
+    bs.configureBugsnag(config)
 
     //healthCheckHTTPServer is set in main.go
     return &Bootstrap{
+        Name:                        bs.Name,
         ServiceStartedCounter:       servicesStartedCounter,
-        ServiceConfig:               serviceConfiguration,
         ServiceHTTPServer:           serviceHTTPServer,
         PrometheusMetricsHTTPServer: prometheusHTTPServer,
     }
 }
 
-func (bs *Bootstrap) serviceConfiguration() *viper.Viper {
-    // command line options for configuring the configuration system
-    pflag.StringP(configFile, "c", "", "service config file")
-    pflag.StringP(envPrefix, "e", "SVC", "environment prefix")
-    pflag.StringP(allowEmptyEnvVar, "a", "true", "allow empty environment variables")
-
-    pflag.StringP(port, "p", "8080", "service port")
-    pflag.Float64P(rateLimit, "r", 1000.0, "rate limit (requests/second)")
-    pflag.BoolP(verbose, "v", false, "verbose (debug level) logging")
-    pflag.StringP(bugsnagAPIKey, "k", "", "bugsnag api key")
-    pflag.StringP(bugsnagReleaseStage, "s", "preprod", "bugsnag api key")
-
+func (bs *Bootstrap) serviceConfig() *service.Config {
     // load service specific configuration options
-    customConfig := &service.Config{}
-    customConfig.LoadApplicationSettings()
+    service.Config{}.New().ConfigureServiceSettings()
 
-    // load pflags into viper
-    pflag.Parse()
-    err := viper.BindPFlags(pflag.CommandLine)
-    if err != nil {
-        panic(fmt.Errorf("fatal error binding pflag to viper: %s", err))
-    }
-
-    // create service config, bootstrapped from pflags
-    svcConfig := viper.New()
-
-    err = svcConfig.BindPFlags(pflag.CommandLine)
-    if err != nil {
-        panic(fmt.Errorf("fatal error binding pflag to svcConfig: %s", err))
-    }
-
-    // useful to understand passed in flags and env settings, etc.
-    //svcConfig.Debug()
-
-    if svcConfig.GetBool(verbose) {
+    if service.GetConfig().Verbose {
         log.SetLogger(log.GetLogger().SetLevel(log.LoggingLevelDebug))
     }
 
-    if viper.GetBool(allowEmptyEnvVar) {
-        svcConfig.AutomaticEnv()
-    }
-    svcConfig.SetEnvPrefix(viper.GetString(envPrefix))
-    svcConfig.AllowEmptyEnv(viper.GetBool(allowEmptyEnvVar))
-
-    if viper.GetString(configFile) != "" {
-        svcConfig.SetConfigFile(viper.GetString(configFile))
-        err = svcConfig.ReadInConfig()
-        if err != nil {
-            panic(fmt.Errorf("fatal error config file: %s", err))
-        }
-    }
-    return svcConfig
+    return service.GetConfig()
 }
 
 func (bs *Bootstrap) serviceStartedCounter() prometheus.Counter {
@@ -177,15 +117,13 @@ func (bs *Bootstrap) serviceStartedCounter() prometheus.Counter {
     })
 }
 
-func (bs *Bootstrap) serviceHTTPServer(config *viper.Viper) *http.Server {
-    rateLimit := config.GetFloat64(rateLimit)
-    rateLimitExceeded := config.GetString(rateLimitExceeded)
-    var mw = tinym.NewTinyServiceMiddleware(bs.Name, rateLimit, rateLimitExceeded).Init()
+func (bs *Bootstrap) serviceHTTPServer(c *service.Config) *http.Server {
+    var mw = tinym.NewTinyServiceMiddleware(bs.Name, c.RateLimit, rateLimitExceeded).Init()
 
     // common middleware is injected here
-    port := config.GetString(port)
-    return bs.ServiceHTTPServerWithMiddleware(mw.DecoratedHandler, port)
+    return bs.ServiceHTTPServerWithMiddleware(mw.DecoratedHandler, c.Port)
 }
+
 
 func (bs *Bootstrap) ServiceHTTPServerWithMiddleware(mw MiddleWare, port string) *http.Server {
     // configure the generated router with middleware
@@ -229,12 +167,12 @@ func (bs *Bootstrap) prometheusHTTPServer() *http.Server {
     }
 }
 
-func (bs *Bootstrap) configureBugsnag(config *viper.Viper) {
-    releaseStage := config.GetString(bugsnagReleaseStage)
+func (bs *Bootstrap) configureBugsnag(c *service.Config) {
     bugsnag.Configure(bugsnag.Configuration{
         ProjectPackages: []string{"main", bs.Name},
-        ReleaseStage:    releaseStage,
-        APIKey:          config.GetString(bugsnagAPIKey)})
+        ReleaseStage:    c.BugsnagReleaseStage,
+        APIKey:          c.BugsnagAPIKey,
+    })
 }
 
 func (bs *Bootstrap) launchHTTPServer(srv *http.Server) {
