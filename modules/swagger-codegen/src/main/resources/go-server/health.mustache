@@ -12,6 +12,8 @@ func (Health) New() *Health {
     return &Health{}
 }
 
+// 'ready' indicates that the service is fully up, running, and 'ready' to serve traffic.
+// The orchestration layer will *NOT* reap this service if it reports that it is not ready.
 func (h *Health) ReadyHandler() http.HandlerFunc {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         log.Errorf("Replace this service ready check with a custom one apropos to your service")
@@ -19,6 +21,10 @@ func (h *Health) ReadyHandler() http.HandlerFunc {
     })
 }
 
+// 'alive' indicates that the service process has been instantiated and is running. It does
+// not mean that the service is ready to accept traffic, that is what the '/ready' endpoint is
+// for. The orchestration layer can and will restart this service instance if it does not
+// respond with http.StatusOK.
 func (h *Health) AliveHandler() http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         w.Header().Set("Content-Type", "application/json; charset=UTF-8")
