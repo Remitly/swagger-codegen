@@ -29,6 +29,7 @@ const (
     port              = "PORT"
     rateLimit         = "RATE_LIMIT"
     rateLimitExceeded = "RATE_LIMIT_EXCEEDED"
+    verbose           = "VERBOSE"
 )
 
 const (
@@ -38,100 +39,6 @@ const (
 
 
 const (
-    prometheusMetricsPath = "/prometheusMetrics"
-    prometheusMetricsPort = "8351"
-)
-
-
-const (
-    healthCheckPath = "/healthcheck"
-    healthCheckPort = "8395"
-)
-
-type Bootstrap struct {}
-
-
-func (bs Bootstrap) svcStartedCounter() prometheus.Counter{
-    appStartedCounter := promauto.NewCounter(prometheus.CounterOpts{
-        Name: fmt.Sprintf("{{serviceName}}_svc_started_total"),
-        Help: "The total number of times the {{serviceName}} service has started",
-    })
-    return appStartedCounter
-}
-
-
-func (bs Bootstrap) serviceHTTPServer(svcConfig *viper.Viper) *http.Server {
-    rateLimit := svcConfig.GetFloat64(rateLimit)
-    rateLimitExceeded := svcConfig.GetString(rateLimitExceeded)
-    var mw = tinym.NewTinyServiceMiddleware("{{serviceName}}", rateLimit, rateLimitExceeded).Init()
-
-    // common middleware is injected here
-    router := NewRouter(mw.DecoratedHandler)
-
-    port := svcConfig.GetString(port)
-
-    srv := &http.Server{
-        Addr:         fmt.Sprintf("0.0.0.0:%s", port),
-        WriteTimeout: time.Second * 15,
-        ReadTimeout:  time.Second * 15,
-        IdleTimeout:  time.Second * 60,
-        Handler:      router,
-    }
-
-    // Run in a goroutine so that it doesn't block.
-    go func() {
-        if err := srv.ListenAndServe(); err != nil {
-            log.Error(err)
-        }
-    }()
-
-    log.Infof("Serving {{serviceName}} at http://0.0.0.0:%s", port)
-
-    err := router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
-      tmpl, err := route.GetPathTemplate()
-      if err == nil {
-        log.With("port", port).Infof("route: %s", tmpl)
-      } else {
-        log.With("port", port).With("err", err).Errorf("error walking {{serviceName}} router")
-      }
-      return nil
-    })
-    if err != nil {
-      log.With("port", port).With("err", err).Errorf("error walking {{serviceName}} router")
-    }
-    return srv
-}
-
-
-func (bs Bootstrap) healthCheckHTTPServer() *http.Server{
-    healthcheck := func ()http.Handler {
-        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-            // TODO: Move this to main.go --> create a useful health check here, as this one is (intentionally) going to fail
-            http.Error(w, http.StatusText(501), 501)
-        })
-    }
-    r := mux.NewRouter()
-    r.Handle(healthCheckPath, healthcheck())
-    srv := &http.Server{
-        Addr:         fmt.Sprintf("0.0.0.0:%s", healthCheckPort),
-        WriteTimeout: time.Second * 15,
-        ReadTimeout:  time.Second * 15,
-        IdleTimeout:  time.Second * 60,
-        Handler:      r,
-    }
-
-    // Run in a goroutine so that it doesn't block.
-    go func() {
-        if err := srv.ListenAndServe(); err != nil {
-            log.Error(err)
-        }
-    }()
-
-    log.Infof("Serving health check at http://0.0.0.0:%s%s", healthCheckPort, healthCheckPath)
-    return srv
-}
-
-func (bs Bootstrap) prometheusHTTPServer() *http.Server{
     /*
         Hardcoded values come from infra.
 
@@ -158,40 +65,58 @@ func (bs Bootstrap) prometheusHTTPServer() *http.Server{
         * gorilla
             * https://github.com/gorilla/mux
     */
+    prometheusMetricsPath = "/prometheusMetrics"
+    prometheusMetricsPort = "8351"
+)
 
-    ph := promhttp.Handler()
-    r := mux.NewRouter()
-    r.Handle(prometheusMetricsPath, ph)
-    srv := &http.Server{
-        Addr:         fmt.Sprintf("0.0.0.0:%s", prometheusMetricsPort),
-        WriteTimeout: time.Second * 15,
-        ReadTimeout:  time.Second * 15,
-        IdleTimeout:  time.Second * 60,
-        Handler: r,
+
+const (
+    readyCheckPath  = "/ready"
+    aliveCheckPath  = "/alive"
+    healthCheckPort = "8081"
+)
+
+type Bootstrap struct {
+    // service name
+    Name string
+
+    // used for detecting service flapping
+    ServiceStartedCounter prometheus.Counter
+
+    // config
+    ServiceConfig *viper.Viper
+
+    // service http server
+    ServiceHTTPServer *http.Server
+
+    // health check server
+    HealthCheckHTTPServer *http.Server
+
+    // prometheus metrics server
+    PrometheusMetricsHTTPServer *http.Server
+}
+
+func (bs Bootstrap) New() *Bootstrap {
+    return &Bootstrap{}
+}
+
+func (bs *Bootstrap) ConfigureDefaults() *Bootstrap {
+    serviceConfiguration := bs.serviceConfiguration()
+    servicesStartedCounter := bs.serviceStartedCounter()
+    serviceHTTPServer := bs.serviceHTTPServer(serviceConfiguration)
+    prometheusHTTPServer := bs.prometheusHTTPServer()
+    bs.configureBugsnag(serviceConfiguration)
+
+    //healthCheckHTTPServer is set in main.go
+    return &Bootstrap{
+        ServiceStartedCounter:       servicesStartedCounter,
+        ServiceConfig:               serviceConfiguration,
+        ServiceHTTPServer:           serviceHTTPServer,
+        PrometheusMetricsHTTPServer: prometheusHTTPServer,
     }
-
-    // Run in a goroutine so that it doesn't block.
-    go func() {
-        if err := srv.ListenAndServe(); err != nil {
-            log.Error(err)
-        }
-    }()
-
-    log.Infof("Serving metrics at http://0.0.0.0:%s%s", prometheusMetricsPort, prometheusMetricsPath)
-    return srv
 }
 
-func (bs Bootstrap) configureBugsnag(svcConfig *viper.Viper) {
-    releaseStage := svcConfig.GetString(bugsnagReleaseStage)
-    bugsnag.Configure(bugsnag.Configuration{
-        ProjectPackages: []string{"main", "{{goModule}}"},
-        ReleaseStage:    releaseStage,
-        APIKey:          svcConfig.GetString(bugsnagAPIKey)})
-}
-
-
-// create service config, bootstrapped from pflags
-func (bs Bootstrap) serviceConfiguration()*viper.Viper{
+func (bs *Bootstrap) serviceConfiguration() *viper.Viper {
     // command line options for configuring the configuration system
     pflag.StringP(configFile, "c", "", "service config file")
     pflag.StringP(envPrefix, "e", "SVC", "environment prefix")
@@ -199,20 +124,19 @@ func (bs Bootstrap) serviceConfiguration()*viper.Viper{
 
     pflag.StringP(port, "p", "8080", "service port")
     pflag.Float64P(rateLimit, "r", 1000.0, "rate limit (requests/second)")
-    pflag.StringP(rateLimitExceeded, "m", "rate limit exceeded", "error message logged when rate limit is exceeded")
-    pflag.BoolP("verbose", "v", false, "verbose (debug level) logging")
+    pflag.BoolP(verbose, "v", false, "verbose (debug level) logging")
     pflag.StringP(bugsnagAPIKey, "k", "", "bugsnag api key")
     pflag.StringP(bugsnagReleaseStage, "s", "preprod", "bugsnag api key")
 
     // load service specific configuration options
-    customConfig := &service.CustomConfig{}
+    customConfig := &service.Config{}
     customConfig.LoadApplicationSettings()
 
     // load pflags into viper
     pflag.Parse()
-        err := viper.BindPFlags(pflag.CommandLine)
-        if err != nil {
-            panic(fmt.Errorf("fatal error binding pflag to viper: %s", err))
+    err := viper.BindPFlags(pflag.CommandLine)
+    if err != nil {
+        panic(fmt.Errorf("fatal error binding pflag to viper: %s", err))
     }
 
     // create service config, bootstrapped from pflags
@@ -221,6 +145,13 @@ func (bs Bootstrap) serviceConfiguration()*viper.Viper{
     err = svcConfig.BindPFlags(pflag.CommandLine)
     if err != nil {
         panic(fmt.Errorf("fatal error binding pflag to svcConfig: %s", err))
+    }
+
+    // useful to understand passed in flags and env settings, etc.
+    //svcConfig.Debug()
+
+    if svcConfig.GetBool(verbose) {
+        log.SetLogger(log.GetLogger().SetLevel(log.LoggingLevelDebug))
     }
 
     if viper.GetBool(allowEmptyEnvVar) {
@@ -239,35 +170,112 @@ func (bs Bootstrap) serviceConfiguration()*viper.Viper{
     return svcConfig
 }
 
+func (bs *Bootstrap) serviceStartedCounter() prometheus.Counter {
+    return promauto.NewCounter(prometheus.CounterOpts{
+    Name: fmt.Sprintf("%s_svc_started_total", bs.Name),
+        Help: "The total number of times the service has started",
+    })
+}
 
-func (bs Bootstrap) LaunchServer() {
+func (bs *Bootstrap) serviceHTTPServer(config *viper.Viper) *http.Server {
+    rateLimit := config.GetFloat64(rateLimit)
+    rateLimitExceeded := config.GetString(rateLimitExceeded)
+    var mw = tinym.NewTinyServiceMiddleware(bs.Name, rateLimit, rateLimitExceeded).Init()
+
+    // common middleware is injected here
+    port := config.GetString(port)
+    return bs.ServiceHTTPServerWithMiddleware(mw.DecoratedHandler, port)
+}
+
+func (bs *Bootstrap) ServiceHTTPServerWithMiddleware(mw MiddleWare, port string) *http.Server {
+    // configure the generated router with middleware
+    router := NewRouter(mw)
+    return &http.Server{
+        Addr:         fmt.Sprintf("0.0.0.0:%s", port),
+        WriteTimeout: time.Second * 15,
+        ReadTimeout:  time.Second * 15,
+        IdleTimeout:  time.Second * 60,
+        Handler:      router,
+    }
+}
+
+func (bs *Bootstrap) HealthCheckHTTPServerWithHandlers(ready http.Handler, alive http.Handler) *http.Server {
+    // limit healthchecks to 10 requests per second
+    rateLimit := 10.0
+    var mw = tinym.NewTinyServiceMiddleware(fmt.Sprintf("%shealth", bs.Name), rateLimit, rateLimitExceeded).Init()
+
+    r := mux.NewRouter()
+    r.Handle(readyCheckPath, mw.DecoratedHandler(ready))
+    r.Handle(aliveCheckPath, mw.DecoratedHandler(alive))
+    return &http.Server{
+        Addr:         fmt.Sprintf("0.0.0.0:%s", healthCheckPort),
+        WriteTimeout: time.Second * 15,
+        ReadTimeout:  time.Second * 15,
+        IdleTimeout:  time.Second * 60,
+        Handler:      r,
+    }
+}
+
+func (bs *Bootstrap) prometheusHTTPServer() *http.Server {
+    ph := promhttp.Handler()
+    r := mux.NewRouter()
+    r.Handle(prometheusMetricsPath, ph)
+    return &http.Server{
+        Addr:         fmt.Sprintf("0.0.0.0:%s", prometheusMetricsPort),
+        WriteTimeout: time.Second * 15,
+        ReadTimeout:  time.Second * 15,
+        IdleTimeout:  time.Second * 60,
+        Handler:      r,
+    }
+}
+
+func (bs *Bootstrap) configureBugsnag(config *viper.Viper) {
+    releaseStage := config.GetString(bugsnagReleaseStage)
+    bugsnag.Configure(bugsnag.Configuration{
+        ProjectPackages: []string{"main", bs.Name},
+        ReleaseStage:    releaseStage,
+        APIKey:          config.GetString(bugsnagAPIKey)})
+}
+
+func (bs *Bootstrap) launchHTTPServer(srv *http.Server) {
+    // Run in a goroutine so that it doesn't block.
+    go func() {
+        if err := srv.ListenAndServe(); err != nil {
+            log.Error(err)
+        }
+    }()
+
+    err := srv.Handler.(*mux.Router).Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
+        tmpl, err := route.GetPathTemplate()
+        if err == nil {
+            log.With("addr", srv.Addr).Infof("route: %s", tmpl)
+        } else {
+            log.With("addr", srv.Addr).With("err", err).Errorf("error walking router")
+        }
+        return nil
+    })
+    if err != nil {
+        log.With("addr", srv.Addr).With("err", err).Errorf("error walking router")
+    }
+}
+
+func (bs *Bootstrap) LaunchServer() {
     var wait time.Duration
 
-    svcCounter := bs.svcStartedCounter()
-    svcConfig := bs.serviceConfiguration()
-
-    if svcConfig.GetBool("verbose"){
-        log.SetLogger(zero.NewDefaultLogger().With(log.KeyServiceName, "{{serviceName}}").SetLevel("debug"))
-    }else{
-        log.SetLogger(zero.NewDefaultLogger().With(log.KeyServiceName, "{{serviceName}}").SetLevel("info"))
-    }
-
-    bs.configureBugsnag(svcConfig)
-
-    log.Debug("{{serviceName}} starting with verbose logging enabled...")
-    log.Info("{{serviceName}} starting...")
+    log.Debugf("%s starting with verbose logging enabled...", bs.Name)
+    log.Infof("%s starting...", bs.Name)
 
     // prometheus metrics
-    metricsServer := bs.prometheusHTTPServer()
+    bs.launchHTTPServer(bs.PrometheusMetricsHTTPServer)
 
     // health check
-    healthServer := bs.healthCheckHTTPServer()
+    bs.launchHTTPServer(bs.HealthCheckHTTPServer)
 
     // service
-    serviceServer := bs.serviceHTTPServer(svcConfig)
+    bs.launchHTTPServer(bs.ServiceHTTPServer)
 
     // increment the svc counter
-    svcCounter.Inc()
+    bs.ServiceStartedCounter.Inc()
 
     c := make(chan os.Signal, 1)
     // We'll accept graceful shutdowns when quit via SIGINT (Ctrl+C)
@@ -282,12 +290,13 @@ func (bs Bootstrap) LaunchServer() {
     defer cancel()
     // Doesn't block if no connections, but will otherwise wait
     // until the timeout deadline.
-    serviceServer.Shutdown(ctx)
-    metricsServer.Shutdown(ctx)
-    healthServer.Shutdown(ctx)
+    bs.ServiceHTTPServer.Shutdown(ctx)
+    bs.PrometheusMetricsHTTPServer.Shutdown(ctx)
+    bs.HealthCheckHTTPServer.Shutdown(ctx)
     // Optionally, you could run srv.Shutdown in a goroutine and block on
     // <-ctx.Done() if your application should wait for other services
     // to finalize based on context cancellation.
     log.Info("shutting down")
     os.Exit(0)
 }
+

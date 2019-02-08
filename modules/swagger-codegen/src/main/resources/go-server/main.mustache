@@ -2,12 +2,40 @@
 package main
 
 import (
+    "github.com/remitly/tiny-logger-go/log"
+    "github.com/remitly/tiny-logger-go/log/zero"
+    "net/http"
+
     "{{goModule}}/{{packageName}}/runtime"
 )
 
 
-// Place service specific code in service/api_{name}.go and service/customconfig.go
+/*
+
+Example of overriding the service middleware. Do this anywhere before calling LaunchServer()
+
+    myPort := "9999"
+    myMiddleware := func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        log.Debug(r.RequestURI)
+        next.ServeHTTP(w, r)
+        })
+    }
+    boot.ServiceHTTPServer = boot.ServiceHTTPServerWithMiddleware(myMiddleware, myPort)
+*/
 func main() {
-    boot := runtime.Bootstrap{}
-    boot.LaunchServer()
+	// configure logger, logging level is overridden by the --verbose flag
+	log.SetLogger(zero.NewDefaultLogger().With(log.KeyServiceName, "{{goModule}}").SetLevel(log.LoggingLevelInfo))
+
+	// this configures a default service (excepting the health check which is configured next)
+	boot := runtime.Bootstrap{}.ConfigureDefaults()
+
+	// configure the health check endpoints
+	health := service.Health{}.New()
+	boot.HealthCheckHTTPServer = boot.HealthCheckHTTPServerWithHandlers(health.ReadyHandler(), health.AliveHandler())
+
+	// if overriding the service middleware, do that here...
+
+	// let's roll
+	boot.LaunchServer()
 }
