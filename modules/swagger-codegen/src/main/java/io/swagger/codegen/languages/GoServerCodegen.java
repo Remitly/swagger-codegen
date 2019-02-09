@@ -38,8 +38,8 @@ public class GoServerCodegen extends AbstractGoCodegen {
          * class
          */
         apiTemplateFiles.put(
-                "controller-api.mustache",   // the template to use
-                ".go");       // the extension for each file to write
+            "api.mustache",         // the template to use
+            ".go");                 // the extension for each file to write
 
         /*
          * Template Location.  This is the location which templates will be read from.  The generator
@@ -106,7 +106,7 @@ public class GoServerCodegen extends AbstractGoCodegen {
         supportingFiles.add(new SupportingFile("main.mustache", "", "main.go"));
         supportingFiles.add(new SupportingFile("config.mustache", "service", "config.go"));
         supportingFiles.add(new SupportingFile("health.mustache", "service", "health.go"));
-        supportingFiles.add(new SupportingFile("bootstrap.mustache",modelPackage() + File.separator + "runtime", "bootstrap.go"));
+        supportingFiles.add(new SupportingFile("bootstrap.mustache", modelPackage() + File.separator + "runtime", "bootstrap.go"));
         supportingFiles.add(new SupportingFile("routers.mustache", modelPackage() + File.separator + "runtime", "routers.go"));
         supportingFiles.add(new SupportingFile("go-mod.mustache",  "go.mod"));
     }
