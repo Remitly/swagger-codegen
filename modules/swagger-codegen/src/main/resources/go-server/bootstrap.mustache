@@ -5,6 +5,7 @@ import (
     "fmt"
     "github.com/bugsnag/bugsnag-go"
     "github.com/gorilla/mux"
+    "github.com/jessevdk/go-flags"
     "github.com/prometheus/client_golang/prometheus"
     "github.com/prometheus/client_golang/prometheus/promauto"
     "github.com/prometheus/client_golang/prometheus/promhttp"
@@ -20,6 +21,8 @@ import (
 )
 
 const (
+    rateLimit         = 1000.0
+    servicePort       = "8080"
     rateLimitExceeded = "RATE LIMIT EXCEEDED"
 )
 
@@ -62,10 +65,15 @@ const (
     healthCheckPort = "8081"
 )
 
-type Bootstrap struct {
-    // service name
-    Name string
+type DefaultConfig struct {
+    LogLevel            string `short:"l" long:"log-level" description:"Logging level" choice:"debug" choice:"info" choice:"warn" choice:"error" default:"info"`
+    BugsnagAPIKey       string `short:"k" long:"bugsnag-api-key" description:"Bugsnag API Key"`
+    BugsnagReleaseStage string `short:"s" long:"bugsnag-release-stage" description:"Bugsnag Release Stage" choice:"preprod" choice:"prod"`
+    CustomConfig        service.CustomConfig
+}
 
+
+type Bootstrap struct {
     // used for detecting service flapping
     ServiceStartedCounter prometheus.Counter
 
@@ -79,57 +87,66 @@ type Bootstrap struct {
     PrometheusMetricsHTTPServer *http.Server
 }
 
-func (bs Bootstrap) New(name string) *Bootstrap {
-    return &Bootstrap{Name:name}
-}
+func (bs Bootstrap) ConfigureDefaults() *Bootstrap {
+    serviceName := "greenhouse"
+    defaultConfig := &DefaultConfig{}
+    bs.parseConfig(defaultConfig)
+    bs.configureLogging(serviceName, defaultConfig)
 
-func (bs *Bootstrap) ConfigureDefaults() *Bootstrap {
-    config := bs.serviceConfig()
-    servicesStartedCounter := bs.serviceStartedCounter()
-    serviceHTTPServer := bs.serviceHTTPServer(config)
+    servicesStartedCounter := bs.serviceStartedCounter(serviceName)
+    serviceHTTPServer := bs.serviceHTTPServer(serviceName, rateLimit)
     prometheusHTTPServer := bs.prometheusHTTPServer()
-    bs.configureBugsnag(config)
+    bs.configureBugsnag(serviceName, defaultConfig.BugsnagReleaseStage, defaultConfig.BugsnagAPIKey)
 
     //healthCheckHTTPServer is set in main.go
     return &Bootstrap{
-        Name:                        bs.Name,
         ServiceStartedCounter:       servicesStartedCounter,
         ServiceHTTPServer:           serviceHTTPServer,
         PrometheusMetricsHTTPServer: prometheusHTTPServer,
     }
 }
 
-func (bs *Bootstrap) serviceConfig() *service.Config {
-    // load service specific configuration options
-    service.Config{}.New().ConfigureServiceSettings()
-
-    if service.GetConfig().Verbose {
+func (bs Bootstrap) configureLogging(serviceName string, config *DefaultConfig) {
+    log.SetLogger(log.GetLogger().With(log.KeyServiceName, serviceName))
+    switch config.LogLevel {
+    case log.LoggingLevelDebug:
         log.SetLogger(log.GetLogger().SetLevel(log.LoggingLevelDebug))
+    case log.LoggingLevelInfo:
+        log.SetLogger(log.GetLogger().SetLevel(log.LoggingLevelInfo))
+    case log.LoggingLevelWarn:
+        log.SetLogger(log.GetLogger().SetLevel(log.LoggingLevelWarn))
+    case log.LoggingLevelError:
+        log.SetLogger(log.GetLogger().SetLevel(log.LoggingLevelError))
+    default:
+        panic(fmt.Sprintf("unknown logging level: %s", config.LogLevel))
     }
-
-    return service.GetConfig()
 }
 
-func (bs *Bootstrap) serviceStartedCounter() prometheus.Counter {
+
+func (bs Bootstrap) parseConfig(config *DefaultConfig) {
+    _, err := flags.Parse(config)
+    if err != nil {
+        os.Exit(1)
+    }
+}
+
+func (bs Bootstrap) serviceStartedCounter(serviceName string) prometheus.Counter {
     return promauto.NewCounter(prometheus.CounterOpts{
-    Name: fmt.Sprintf("%s_svc_started_total", bs.Name),
+        Name: fmt.Sprintf("%s_svc_started_total", serviceName),
         Help: "The total number of times the service has started",
     })
 }
 
-func (bs *Bootstrap) serviceHTTPServer(c *service.Config) *http.Server {
-    var mw = tinym.NewTinyServiceMiddleware(bs.Name, c.RateLimit, rateLimitExceeded).Init()
-
-    // common middleware is injected here
-    return bs.ServiceHTTPServerWithMiddleware(mw.DecoratedHandler, c.Port)
+func (bs Bootstrap) serviceHTTPServer(serviceName string, rateLimit float64) *http.Server {
+    var mw = tinym.NewTinyServiceMiddleware(serviceName, rateLimit, rateLimitExceeded).Init()
+    return bs.ServiceHTTPServerWithMiddleware(mw.DecoratedHandler)
 }
 
 
-func (bs *Bootstrap) ServiceHTTPServerWithMiddleware(mw MiddleWare, port string) *http.Server {
-    // configure the generated router with middleware
+func (bs Bootstrap) ServiceHTTPServerWithMiddleware(mw MiddleWare) *http.Server {
     router := NewRouter(mw)
     return &http.Server{
-        Addr:         fmt.Sprintf("0.0.0.0:%s", port),
+        Addr:         fmt.Sprintf("0.0.0.0:%s", servicePort),
         WriteTimeout: time.Second * 15,
         ReadTimeout:  time.Second * 15,
         IdleTimeout:  time.Second * 60,
@@ -137,14 +154,14 @@ func (bs *Bootstrap) ServiceHTTPServerWithMiddleware(mw MiddleWare, port string)
     }
 }
 
-func (bs *Bootstrap) HealthCheckHTTPServerWithHandlers(ready http.Handler, alive http.Handler) *http.Server {
+func (bs Bootstrap) HealthCheckHTTPServerWithHandlers(h service.Health) *http.Server {
     // limit healthchecks to 10 requests per second
     rateLimit := 10.0
-    var mw = tinym.NewTinyServiceMiddleware(fmt.Sprintf("%shealth", bs.Name), rateLimit, rateLimitExceeded).Init()
+    var mw = tinym.NewTinyServiceMiddleware("{{goModule}}health", rateLimit, rateLimitExceeded).Init()
 
     r := mux.NewRouter()
-    r.Handle(readyCheckPath, mw.DecoratedHandler(ready))
-    r.Handle(aliveCheckPath, mw.DecoratedHandler(alive))
+    r.Handle(readyCheckPath, mw.DecoratedHandler(h.ReadyHandler()))
+    r.Handle(aliveCheckPath, mw.DecoratedHandler(h.AliveHandler()))
     return &http.Server{
         Addr:         fmt.Sprintf("0.0.0.0:%s", healthCheckPort),
         WriteTimeout: time.Second * 15,
@@ -154,7 +171,7 @@ func (bs *Bootstrap) HealthCheckHTTPServerWithHandlers(ready http.Handler, alive
     }
 }
 
-func (bs *Bootstrap) prometheusHTTPServer() *http.Server {
+func (bs Bootstrap) prometheusHTTPServer() *http.Server {
     ph := promhttp.Handler()
     r := mux.NewRouter()
     r.Handle(prometheusMetricsPath, ph)
@@ -167,15 +184,15 @@ func (bs *Bootstrap) prometheusHTTPServer() *http.Server {
     }
 }
 
-func (bs *Bootstrap) configureBugsnag(c *service.Config) {
+func (bs Bootstrap) configureBugsnag(serviceName string, bugsnagReleaseStage string, bugsnagAPIKey string) {
     bugsnag.Configure(bugsnag.Configuration{
-        ProjectPackages: []string{"main", bs.Name},
-        ReleaseStage:    c.BugsnagReleaseStage,
-        APIKey:          c.BugsnagAPIKey,
+        ProjectPackages: []string{"main", serviceName},
+        ReleaseStage:    bugsnagReleaseStage,
+        APIKey:          bugsnagReleaseStage,
     })
 }
 
-func (bs *Bootstrap) launchHTTPServer(srv *http.Server) {
+func (bs Bootstrap) launchHTTPServer(srv *http.Server) {
     // Run in a goroutine so that it doesn't block.
     go func() {
         if err := srv.ListenAndServe(); err != nil {
@@ -200,8 +217,8 @@ func (bs *Bootstrap) launchHTTPServer(srv *http.Server) {
 func (bs *Bootstrap) LaunchServer() {
     var wait time.Duration
 
-    log.Debugf("%s starting with verbose logging enabled...", bs.Name)
-    log.Infof("%s starting...", bs.Name)
+    log.Debug("verbose logging enabled...")
+    log.Info("starting...")
 
     // prometheus metrics
     bs.launchHTTPServer(bs.PrometheusMetricsHTTPServer)

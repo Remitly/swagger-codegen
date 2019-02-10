@@ -39,9 +39,9 @@ func NewRouter(middleWare MiddleWare) *mux.Router {
 }
 
 func Index(w http.ResponseWriter, r *http.Request) {
-    sm := &log.ServiceMetadata{CustomerPublicId: "customerpublicid", Help: "help msg",
-    Message: "a message", RequestId: "requestid", SessionPublicId: "sessionpublicid"}
-    log.WithServiceMetadata(sm).Infof("Index called, hello world (or somesuch)!")
+    log.With(log.KeyEndpoint, "index").
+        WithServiceMetadata(log.ServiceMetaDataFromRequest(r, "Index endpoint left in for diagnostics")).
+        Debugf("vars: %+v", mux.Vars(r))
 }
 
 var routes = Routes{

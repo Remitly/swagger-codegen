@@ -17,25 +17,24 @@ Example of overriding the service middleware. Do this anywhere before calling La
     myPort := "9999"
     myMiddleware := func(next http.Handler) http.Handler {
         return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        log.Debug(r.RequestURI)
-        next.ServeHTTP(w, r)
+            log.Debug(r.RequestURI)
+            next.ServeHTTP(w, r)
         })
     }
     boot.ServiceHTTPServer = boot.ServiceHTTPServerWithMiddleware(myMiddleware, myPort)
 */
 func main() {
-	// configure logger, logging level is overridden by the --verbose flag
-	log.SetLogger(zero.NewDefaultLogger().With(log.KeyServiceName, "{{goModule}}").SetLevel(log.LoggingLevelInfo))
+    // choose a logger from tiny-logger-go/log {zero|logrus}
+    log.SetLogger(zero.NewDefaultLogger())
 
-	// this configures a default service (excepting the health check which is configured next)
-	boot := runtime.Bootstrap{}.New("{{goModule}}").ConfigureDefaults()
+    // configure the service (excepting the health check which is configured next)
+    boot := runtime.Bootstrap{}.ConfigureDefaults()
 
-	// configure the health check endpoints
-	health := service.Health{}.New()
-	boot.HealthCheckHTTPServer = boot.HealthCheckHTTPServerWithHandlers(health.ReadyHandler(), health.AliveHandler())
+    // configure the health check endpoints
+    boot.HealthCheckHTTPServer = boot.HealthCheckHTTPServerWithHandlers(service.BasicHealth{})
 
-	// if overriding the service middleware, do that here...
+    // if overriding the service middleware, do that here...
 
-	// let's roll
-	boot.LaunchServer()
+    // let's roll
+    boot.LaunchServer()
 }
