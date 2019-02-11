@@ -9,6 +9,8 @@ import (
     "net/http"
 ){{#operation}}
 
+// Mothra generated file. Mothra *will* overwrite this file, so ensure that it is checked into source control.
+
 func {{nickname}}(w http.ResponseWriter, r *http.Request) {
     opentracing.StartSpanFromRequest(r, "{{nickname}}")
     log.With(log.KeyEndpoint, "{{nickname}}").
