@@ -18,6 +18,7 @@ import (
 
     tinym "github.com/remitly/tiny-middleware-go/middlewares"
     "{{goModule}}/service"
+    "{{goModule}}/generated/config"
 )
 
 const (
@@ -65,14 +66,6 @@ const (
     healthCheckPort = "8081"
 )
 
-type DefaultConfig struct {
-    LogLevel            string `short:"l" long:"log-level" description:"Logging level" choice:"debug" choice:"info" choice:"warn" choice:"error" default:"info"`
-    BugsnagAPIKey       string `short:"k" long:"bugsnag-api-key" description:"Bugsnag API Key"`
-    BugsnagReleaseStage string `short:"s" long:"bugsnag-release-stage" description:"Bugsnag Release Stage" choice:"preprod" choice:"prod"`
-    CustomConfig        service.CustomConfig
-}
-
-
 type Bootstrap struct {
     // used for detecting service flapping
     ServiceStartedCounter prometheus.Counter
@@ -89,12 +82,12 @@ type Bootstrap struct {
 
 func (bs Bootstrap) ConfigureDefaults() *Bootstrap {
     serviceName := "greenhouse"
-    defaultConfig := &DefaultConfig{}
+    defaultConfig := &config.DefaultConfig{}
     bs.parseConfig(defaultConfig)
     bs.configureLogging(serviceName, defaultConfig)
 
     servicesStartedCounter := bs.serviceStartedCounter(serviceName)
-    serviceHTTPServer := bs.serviceHTTPServer(serviceName, rateLimit)
+    serviceHTTPServer := bs.serviceHTTPServer(serviceName, defaultConfig, rateLimit)
     prometheusHTTPServer := bs.prometheusHTTPServer()
     bs.configureBugsnag(serviceName, defaultConfig.BugsnagReleaseStage, defaultConfig.BugsnagAPIKey)
 
@@ -106,9 +99,9 @@ func (bs Bootstrap) ConfigureDefaults() *Bootstrap {
     }
 }
 
-func (bs Bootstrap) configureLogging(serviceName string, config *DefaultConfig) {
+func (bs Bootstrap) configureLogging(serviceName string, defaultConfig *config.DefaultConfig) {
     log.SetLogger(log.GetLogger().With(log.KeyServiceName, serviceName))
-    switch config.LogLevel {
+    switch defaultConfig.LogLevel {
     case log.LoggingLevelDebug:
         log.SetLogger(log.GetLogger().SetLevel(log.LoggingLevelDebug))
     case log.LoggingLevelInfo:
@@ -118,13 +111,13 @@ func (bs Bootstrap) configureLogging(serviceName string, config *DefaultConfig) 
     case log.LoggingLevelError:
         log.SetLogger(log.GetLogger().SetLevel(log.LoggingLevelError))
     default:
-        panic(fmt.Sprintf("unknown logging level: %s", config.LogLevel))
+        panic(fmt.Sprintf("unknown logging level: %s", defaultConfig.LogLevel))
     }
 }
 
 
-func (bs Bootstrap) parseConfig(config *DefaultConfig) {
-    _, err := flags.Parse(config)
+func (bs Bootstrap) parseConfig(defaultConfig *config.DefaultConfig) {
+    _, err := flags.Parse(defaultConfig)
     if err != nil {
         os.Exit(1)
     }
@@ -137,8 +130,8 @@ func (bs Bootstrap) serviceStartedCounter(serviceName string) prometheus.Counter
     })
 }
 
-func (bs Bootstrap) serviceHTTPServer(serviceName string, rateLimit float64) *http.Server {
-    var mw = tinym.NewTinyServiceMiddleware(serviceName, rateLimit, rateLimitExceeded).Init()
+func (bs Bootstrap) serviceHTTPServer(serviceName string, defaultConfig *config.DefaultConfig, rateLimit float64) *http.Server {
+    var mw = tinym.NewTinyServiceMiddleware(serviceName, defaultConfig, rateLimit, rateLimitExceeded).Init()
     return bs.ServiceHTTPServerWithMiddleware(mw.DecoratedHandler)
 }
 
@@ -157,7 +150,7 @@ func (bs Bootstrap) ServiceHTTPServerWithMiddleware(mw MiddleWare) *http.Server 
 func (bs Bootstrap) HealthCheckHTTPServerWithHandlers(h service.Health) *http.Server {
     // limit healthchecks to 10 requests per second
     rateLimit := 10.0
-    var mw = tinym.NewTinyServiceMiddleware("{{goModule}}health", rateLimit, rateLimitExceeded).Init()
+    var mw = tinym.NewTinyServiceMiddleware("{{goModule}}health", nil, rateLimit, rateLimitExceeded).Init()
 
     r := mux.NewRouter()
     r.Handle(readyCheckPath, mw.DecoratedHandler(h.ReadyHandler()))

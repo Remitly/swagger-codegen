@@ -1,0 +1,12 @@
+package config
+
+import (
+    "{{goModule}}/service/config"
+)
+
+type DefaultConfig struct {
+LogLevel            string `short:"l" long:"log-level" description:"Logging level" choice:"debug" choice:"info" choice:"warn" choice:"error" default:"info"`
+BugsnagAPIKey       string `short:"k" long:"bugsnag-api-key" description:"Bugsnag API Key"`
+BugsnagReleaseStage string `short:"s" long:"bugsnag-release-stage" description:"Bugsnag Release Stage" choice:"preprod" choice:"prod"`
+CustomConfig        config.CustomConfig
+}
