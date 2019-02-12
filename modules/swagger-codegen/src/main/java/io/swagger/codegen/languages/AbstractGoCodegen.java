@@ -200,8 +200,13 @@ public abstract class AbstractGoCodegen extends DefaultCodegen implements Codege
 
     @Override
     public String toApiFilename(String name) {
-        return "api";
+        // replace - with _ e.g. created-at => created_at
+        name = name.replaceAll("-", "_"); // FIXME: a parameter should not be assigned. Also declare the methods parameters as 'final'.
+
+        // e.g. PetApi.go => pet_api.go
+        return "api_" + underscore(name);
     }
+
 
     /**
      * Overrides postProcessParameter to add a vendor extension "x-exportParamName".
