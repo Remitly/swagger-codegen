@@ -179,9 +179,9 @@ func (bs Bootstrap) prometheusHTTPServer() *http.Server {
 
 func (bs Bootstrap) configureBugsnag(serviceName string, bugsnagReleaseStage string, bugsnagAPIKey string) {
     bugsnag.Configure(bugsnag.Configuration{
-        ProjectPackages: []string{"main", serviceName},
+        ProjectPackages: []string{"main", fmt.Sprintf("github.com/remitly/%s", serviceName)},
         ReleaseStage:    bugsnagReleaseStage,
-        APIKey:          bugsnagReleaseStage,
+        APIKey:          bugsnagAPIKey,
     })
 }
 
