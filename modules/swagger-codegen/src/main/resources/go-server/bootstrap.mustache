@@ -81,7 +81,7 @@ type Bootstrap struct {
 }
 
 func (bs Bootstrap) ConfigureDefaults() *Bootstrap {
-    serviceName := "greenhouse"
+    serviceName := "{{goModule}}"
     defaultConfig := &config.DefaultConfig{}
     bs.parseConfig(defaultConfig)
     bs.configureLogging(serviceName, defaultConfig)
