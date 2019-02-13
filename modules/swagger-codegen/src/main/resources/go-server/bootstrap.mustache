@@ -22,9 +22,7 @@ import (
 )
 
 const (
-    rateLimit         = 1000.0
-    servicePort       = "8080"
-    rateLimitExceeded = "RATE LIMIT EXCEEDED"
+    rateLimitExceededMessage = "RATE LIMIT EXCEEDED"
 )
 
 
@@ -56,14 +54,14 @@ const (
             * https://github.com/gorilla/mux
     */
     prometheusMetricsPath = "/prometheusMetrics"
-    prometheusMetricsPort = "8351"
+    prometheusMetricsPort = 8351
 )
 
 
 const (
     readyCheckPath  = "/ready"
     aliveCheckPath  = "/alive"
-    healthCheckPort = "8081"
+    healthCheckPort = 8081
 )
 
 type Bootstrap struct {
@@ -87,7 +85,7 @@ func (bs Bootstrap) ConfigureDefaults() *Bootstrap {
     bs.configureLogging(serviceName, defaultConfig)
 
     servicesStartedCounter := bs.serviceStartedCounter(serviceName)
-    serviceHTTPServer := bs.serviceHTTPServer(serviceName, defaultConfig, rateLimit)
+    serviceHTTPServer := bs.serviceHTTPServer(serviceName, defaultConfig)
     prometheusHTTPServer := bs.prometheusHTTPServer()
     bs.configureBugsnag(serviceName, defaultConfig.BugsnagReleaseStage, defaultConfig.BugsnagAPIKey)
 
@@ -130,16 +128,16 @@ func (bs Bootstrap) serviceStartedCounter(serviceName string) prometheus.Counter
     })
 }
 
-func (bs Bootstrap) serviceHTTPServer(serviceName string, defaultConfig *config.DefaultConfig, rateLimit float64) *http.Server {
-    var mw = tinym.NewTinyServiceMiddleware(serviceName, defaultConfig, rateLimit, rateLimitExceeded).Init()
-    return bs.ServiceHTTPServerWithMiddleware(mw.DecoratedHandler)
+func (bs Bootstrap) serviceHTTPServer(serviceName string, defaultConfig *config.DefaultConfig) *http.Server {
+    var mw = tinym.NewTinyServiceMiddleware(serviceName, defaultConfig, defaultConfig.RateLimit, rateLimitExceededMessage).Init()
+    return bs.ServiceHTTPServerWithMiddleware(mw.DecoratedHandler, defaultConfig.Port)
 }
 
 
-func (bs Bootstrap) ServiceHTTPServerWithMiddleware(mw MiddleWare) *http.Server {
+func (bs Bootstrap) ServiceHTTPServerWithMiddleware(mw MiddleWare, port int) *http.Server {
     router := NewRouter(mw)
     return &http.Server{
-        Addr:         fmt.Sprintf("0.0.0.0:%s", servicePort),
+        Addr:         fmt.Sprintf("0.0.0.0:%d", port),
         WriteTimeout: time.Second * 15,
         ReadTimeout:  time.Second * 15,
         IdleTimeout:  time.Second * 60,
@@ -150,13 +148,13 @@ func (bs Bootstrap) ServiceHTTPServerWithMiddleware(mw MiddleWare) *http.Server 
 func (bs Bootstrap) HealthCheckHTTPServerWithHandlers(h service.Health) *http.Server {
     // limit healthchecks to 10 requests per second
     rateLimit := 10.0
-    var mw = tinym.NewTinyServiceMiddleware("{{goModule}}health", nil, rateLimit, rateLimitExceeded).Init()
+    var mw = tinym.NewTinyServiceMiddleware("{{goModule}}health", nil, rateLimit, rateLimitExceededMessage).Init()
 
     r := mux.NewRouter()
     r.Handle(readyCheckPath, mw.DecoratedHandler(h.ReadyHandler()))
     r.Handle(aliveCheckPath, mw.DecoratedHandler(h.AliveHandler()))
     return &http.Server{
-        Addr:         fmt.Sprintf("0.0.0.0:%s", healthCheckPort),
+        Addr:         fmt.Sprintf("0.0.0.0:%d", healthCheckPort),
         WriteTimeout: time.Second * 15,
         ReadTimeout:  time.Second * 15,
         IdleTimeout:  time.Second * 60,
@@ -169,7 +167,7 @@ func (bs Bootstrap) prometheusHTTPServer() *http.Server {
     r := mux.NewRouter()
     r.Handle(prometheusMetricsPath, ph)
     return &http.Server{
-        Addr:         fmt.Sprintf("0.0.0.0:%s", prometheusMetricsPort),
+        Addr:         fmt.Sprintf("0.0.0.0:%d", prometheusMetricsPort),
         WriteTimeout: time.Second * 15,
         ReadTimeout:  time.Second * 15,
         IdleTimeout:  time.Second * 60,
