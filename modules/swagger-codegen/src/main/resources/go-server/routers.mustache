@@ -3,6 +3,7 @@ package runtime
 
 import (
     "github.com/remitly/tiny-logger-go/log"
+    "github.com/remitly/tiny-middleware-go/opentracing"
     "net/http"
     "strings"
 
@@ -56,6 +57,17 @@ var routes = Routes{
 		"{{operationId}}",
 		strings.ToUpper("{{httpMethod}}"),
 		"{{{basePathWithoutHost}}}{{{path}}}",
-		service.{{operationId}},
+		genHandler("{{operationId}}", service.{{operationId}}),
 	},{{/operation}}{{/operations}}{{/apis}}{{/apiInfo}}
+}
+
+func genHandler(operationName string, handler http.HandlerFunc) http.HandlerFunc {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        span, ctx := opentracing.StartSpanFromRequest(r, operationName)
+        log.With(log.KeyEndpoint, operationName).
+            WithServiceMetadata(log.ServiceMetaDataFromRequest(r, "")).
+            Debugf("vars: %+v", mux.Vars(r))
+        handler.ServeHTTP(w, r.WithContext(ctx))
+        span.Finish()
+    })
 }

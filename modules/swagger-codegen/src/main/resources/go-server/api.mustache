@@ -5,24 +5,85 @@ package service
 
 {{#operations}}
 import (
-    "github.com/remitly/tiny-middleware-go/opentracing"
-    "github.com/gorilla/mux"
-    "github.com/remitly/tiny-logger-go/log"
     "net/http"
-){{#operation}}
+)
+/*
+Notes:
 
+1. Spans
+
+```generated/runtime/routers.go``` wraps each service method in a span.
+
+Example:
+
+Access the span like so...
+
+```
+import(
+    "github.com/opentracing/opentracing-go"
+    "net/http"
+)
+```
+
+
+```
+func ServiceMethod(w http.ResponseWriter, r *http.Request) {
+    span := opentracing.SpanFromContext(r.Context())
+    span.SetTag("somekey", "somevalue")
+    ...
+}
+```
+
+2. Context objects
+
+tiny-middleware-go injects various objects into the request context:
+
+Example:
+
+Access the context objects like so...
+
+```
+import (
+    "github.com/opentracing/opentracing-go"
+    "github.com/remitly/tiny-logger-go/log"
+    "github.com/remitly/tiny-middleware-go/requestcontext/ctxconfig"
+    "github.com/remitly/tiny-middleware-go/requestcontext/ctxservice"
+    "github.com/remitly/tiny-middleware-go/requestcontext/ctxtracer"
+    "net/http"
+    "{{goModule}}/generated/config"
+)
+```
+
+```
+func ServiceMethod(w http.ResponseWriter, r *http.Request) {
+    safe, err := (&ctxconfig.ContextSafeConfig{}).Retrieve(r.Context())
+    if err == nil {
+        defaultConfig := safe.Value().(*config.DefaultConfig)
+        log.Debugf("defaultConfig: %+v", defaultConfig)
+    }
+
+    safe, err = (&ctxservice.ContextSafeService{}).Retrieve(r.Context())
+    if err == nil {
+        serviceName := safe.Value().(string)
+        log.Debugf("serviceName: %s", serviceName)
+    }
+
+    safe, err = (&ctxtracer.ContextSafeTracer{}).Retrieve(r.Context())
+    if err == nil {
+        tracer := safe.Value().(opentracing.Tracer)
+        log.Debugf("tracer: %+v", tracer)
+    }
+    ...
+}
+```
+*/
+
+{{#operation}}
 
 func {{nickname}}(w http.ResponseWriter, r *http.Request) {
-    span, _ := opentracing.StartSpanFromRequest(r, "{{nickname}}")
-    log.With(log.KeyEndpoint, "{{nickname}}").
-        WithServiceMetadata(log.ServiceMetaDataFromRequest(r, "help-todo")).
-        Debugf("vars: %+v", mux.Vars(r))
-
     // -----------------------------------------------------
     // domain logic here
     // -----------------------------------------------------
-
-    span.Finish()
     w.Header().Set("Content-Type", "application/json; charset=UTF-8")
     w.WriteHeader(http.StatusOK)
 }{{/operation}}{{/operations}}
