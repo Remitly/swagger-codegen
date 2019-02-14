@@ -11,6 +11,7 @@ import (
     "github.com/prometheus/client_golang/prometheus/promhttp"
     "github.com/remitly/tiny-logger-go/log"
     "golang.org/x/net/context"
+    "io/ioutil"
     "net/http"
     "os"
     "os/signal"
@@ -20,6 +21,16 @@ import (
     "{{goModule}}/service"
     "{{goModule}}/generated/config"
 )
+
+var oasAPI []byte
+
+func init() {
+    byteArray, err := ioutil.ReadFile("api.json")
+        if err != nil {
+        panic("missing api.json")
+    }
+    oasAPI = byteArray
+}
 
 const (
     rateLimitExceededMessage = "RATE LIMIT EXCEEDED"
@@ -59,6 +70,7 @@ const (
 
 
 const (
+    apiPath         = "/api-docs"
     readyCheckPath  = "/ready"
     aliveCheckPath  = "/alive"
     healthCheckPort = 8081
@@ -145,6 +157,19 @@ func (bs Bootstrap) ServiceHTTPServerWithMiddleware(mw MiddleWare, port int) *ht
     }
 }
 
+func apiHandler() http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+        _, err := w.Write(oasAPI)
+        if err != nil {
+            http.Error(w, "Error serving api.json on root endpoint", http.StatusInternalServerError)
+        } else {
+            w.WriteHeader(http.StatusOK)
+        }
+    }
+}
+
+
 func (bs Bootstrap) HealthCheckHTTPServerWithHandlers(h service.Health) *http.Server {
     // limit healthchecks to 10 requests per second
     rateLimit := 10.0
@@ -153,6 +178,7 @@ func (bs Bootstrap) HealthCheckHTTPServerWithHandlers(h service.Health) *http.Se
     r := mux.NewRouter()
     r.Handle(readyCheckPath, mw.DecoratedHandler(h.ReadyHandler()))
     r.Handle(aliveCheckPath, mw.DecoratedHandler(h.AliveHandler()))
+    r.Handle(apiPath, mw.DecoratedHandler(apiHandler()))
     return &http.Server{
         Addr:         fmt.Sprintf("0.0.0.0:%d", healthCheckPort),
         WriteTimeout: time.Second * 15,
