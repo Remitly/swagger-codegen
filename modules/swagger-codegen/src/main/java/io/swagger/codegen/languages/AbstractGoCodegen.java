@@ -81,20 +81,12 @@ public abstract class AbstractGoCodegen extends DefaultCodegen implements Codege
         importMapping = new HashMap<String, String>();
 
         cliOptions.clear();
-        cliOptions.add(new CliOption(CodegenConstants.PACKAGE_NAME, "Go package name (convention: lowercase).")
-                .defaultValue("swagger"));
-
         cliOptions.add(new CliOption(CodegenConstants.HIDE_GENERATION_TIMESTAMP, CodegenConstants.HIDE_GENERATION_TIMESTAMP_DESC)
                 .defaultValue(Boolean.TRUE.toString()));
-
-        cliOptions.add(new CliOption(CodegenConstants.API_PATH, "Go api path")
-            .defaultValue("go"));
         cliOptions.add(new CliOption(CodegenConstants.SERVER_PORT, "Go server port")
             .defaultValue("8080"));
         cliOptions.add(new CliOption(CodegenConstants.API_VERSION, "Service version")
             .defaultValue("0.0.1"));
-        cliOptions.add(new CliOption(CodegenConstants.GO_MODULE, "Go module")
-            .defaultValue("github.com/foo/bar"));
         cliOptions.add(new CliOption(CodegenConstants.SERVICE_NAME, "Simple service name (compatible as a prometheus metric name)")
             .defaultValue("service_name"));
     }

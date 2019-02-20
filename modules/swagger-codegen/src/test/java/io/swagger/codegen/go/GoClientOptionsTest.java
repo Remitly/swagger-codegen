@@ -28,8 +28,6 @@ public class GoClientOptionsTest extends AbstractOptionsTest {
         new Expectations(clientCodegen) {{
             clientCodegen.setPackageVersion(GoClientOptionsProvider.PACKAGE_VERSION_VALUE);
             times = 1;
-            clientCodegen.setPackageName(GoClientOptionsProvider.PACKAGE_NAME_VALUE);
-            times = 1;
             clientCodegen.setWithXml(GoClientOptionsProvider.WITH_XML_VALUE);
             times = 1;
         }};

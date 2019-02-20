@@ -18,8 +18,8 @@ import (
     "time"
 
     tinym "github.com/remitly/tiny-middleware-go/middlewares"
-    "{{goModule}}/service"
-    "{{goModule}}/generated/config"
+    "{{serviceName}}/service"
+    "{{serviceName}}/generated/config"
 )
 
 var oasAPI []byte
@@ -97,7 +97,7 @@ type Bootstrap struct {
 }
 
 func (bs Bootstrap) ConfigureDefaults() *Bootstrap {
-    serviceName := "{{goModule}}"
+    serviceName := "{{serviceName}}"
     defaultConfig := &config.DefaultConfig{}
     bs.parseConfig(defaultConfig)
     bs.configureLogging(serviceName, defaultConfig)
@@ -177,7 +177,7 @@ func apiHandler() http.HandlerFunc {
 
 func (bs Bootstrap) AdminHTTPServerWithHandlers(h service.Health) *http.Server {
     rateLimitRequestsPerSecond := 10.0
-    var mw = tinym.NewTinyServiceMiddleware("{{goModule}}admin", nil, rateLimitRequestsPerSecond, rateLimitExceededMessage).Init()
+    var mw = tinym.NewTinyServiceMiddleware("{{serviceName}}admin", nil, rateLimitRequestsPerSecond, rateLimitExceededMessage).Init()
 
     r := mux.NewRouter()
 
