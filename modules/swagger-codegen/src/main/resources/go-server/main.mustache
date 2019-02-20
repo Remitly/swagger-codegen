@@ -30,7 +30,7 @@ func main() {
     boot := runtime.Bootstrap{}.ConfigureDefaults()
 
     // configure the health check endpoints
-    boot.HealthCheckHTTPServer = boot.HealthCheckHTTPServerWithHandlers(service.BasicHealth{})
+    boot.AdminHTTPServer = boot.AdminHTTPServerWithHandlers(service.BasicHealth{})
 
     // if overriding the service middleware, do that here...
 
