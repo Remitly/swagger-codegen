@@ -7,8 +7,6 @@ import (
     "net/http"
 )
 
-// Mothra generated file. Mothra *will* overwrite this file, so ensure that it is checked into source control.
-
 type Health interface {
     ReadyHandler() http.Handler
     AliveHandler() http.Handler
