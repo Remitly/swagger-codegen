@@ -159,28 +159,36 @@ public class KotlinServerCodegen extends AbstractKotlinCodegen {
 
         Boolean generateApis = additionalProperties.containsKey(CodegenConstants.GENERATE_APIS) && (Boolean)additionalProperties.get(CodegenConstants.GENERATE_APIS);
         String packageFolder = (sourceFolder + File.separator + packageName).replace(".", File.separator);
+        String generatedFolder = packageFolder + File.separator + "generated";
+        String serviceFolder = packageFolder + File.separator + "service";
+        String serviceConfigFolder = serviceFolder + File.separator + "config";
         String resourcesFolder = "src/main/resources"; // not sure this can be user configurable.
 
+        // root
         supportingFiles.add(new SupportingFile("README.mustache", "", "README.md"));
         supportingFiles.add(new SupportingFile("Dockerfile.mustache", "", "Dockerfile"));
-
         supportingFiles.add(new SupportingFile("build.gradle.mustache", "", "build.gradle"));
         supportingFiles.add(new SupportingFile("settings.gradle.mustache", "", "settings.gradle"));
         supportingFiles.add(new SupportingFile("gradle.properties", "", "gradle.properties"));
 
+        // com.remitly.{{ .AppName }}
         supportingFiles.add(new SupportingFile("AppMain.kt.mustache", packageFolder, "AppMain.kt"));
-        supportingFiles.add(new SupportingFile("Configuration.kt.mustache", packageFolder, "Configuration.kt"));
 
+        // com.remitly.{{ .AppName }}.generated
         if (generateApis) {
-            supportingFiles.add(new SupportingFile("Paths.kt.mustache", packageFolder, "Paths.kt"));
+            supportingFiles.add(new SupportingFile("Paths.kt.mustache", generatedFolder, "Paths.kt"));
         }
 
+        // com.remitly.{{ .AppName }}.service
+        supportingFiles.add(new SupportingFile("ApiKeyAuth.kt.mustache", serviceFolder, "ApiKeyAuth.kt"));
+
+        // com.remitly.{{ .AppName }}.service.config
+        supportingFiles.add(new SupportingFile("Configuration.kt.mustache", serviceConfigFolder, "Configuration.kt"));
+
+        // TODO why are these under src/main/resources?
         supportingFiles.add(new SupportingFile("application.conf.mustache", resourcesFolder, "application.conf"));
         supportingFiles.add(new SupportingFile("logback.xml", resourcesFolder, "logback.xml"));
 
-        final String infrastructureFolder = (sourceFolder + File.separator + packageName + File.separator + "infrastructure").replace(".", File.separator);
-
-        supportingFiles.add(new SupportingFile("ApiKeyAuth.kt.mustache", infrastructureFolder, "ApiKeyAuth.kt"));
 
         addMustacheLambdas(additionalProperties);
     }

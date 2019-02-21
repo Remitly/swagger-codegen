@@ -303,9 +303,9 @@ public abstract class AbstractKotlinCodegen extends DefaultCodegen implements Co
         if (additionalProperties.containsKey(CodegenConstants.PACKAGE_NAME)) {
             this.setPackageName((String) additionalProperties.get(CodegenConstants.PACKAGE_NAME));
             if (!additionalProperties.containsKey(CodegenConstants.MODEL_PACKAGE))
-                this.setModelPackage(packageName + ".models");
+                this.setModelPackage(packageName + ".generated.models");
             if (!additionalProperties.containsKey(CodegenConstants.API_PACKAGE))
-                this.setApiPackage(packageName + ".apis");
+                this.setApiPackage(packageName + ".service");
         } else {
             additionalProperties.put(CodegenConstants.PACKAGE_NAME, packageName);
         }
