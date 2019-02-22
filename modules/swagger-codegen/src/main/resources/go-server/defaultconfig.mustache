@@ -11,6 +11,7 @@ type DefaultConfig struct {
     BugsnagAPIKey       string  `short:"k" long:"bugsnag-api-key" description:"Bugsnag API Key"`
     BugsnagReleaseStage string  `short:"s" long:"bugsnag-release-stage" description:"Bugsnag Release Stage" choice:"preprod" choice:"prod"`
     Port                int     `short:"p" long:"port" description:"Service port" default:"8080"`
+    AdminPort           int     `short:"a" long:"admin-port" description:"Admin port" default:"9080"`
     RateLimit           float64 `short:"r" long:"rate-limit" description:"Maximum number of requests/second" default:"1000.0"`
     CustomConfig        config.CustomConfig
 }

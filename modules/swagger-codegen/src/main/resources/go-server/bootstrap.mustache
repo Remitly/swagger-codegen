@@ -82,7 +82,6 @@ const (
     apiPath         = "/api-docs"
     readyCheckPath  = "/ready"
     aliveCheckPath  = "/alive"
-    adminPort = 9080
 )
 
 type Bootstrap struct {
@@ -94,6 +93,9 @@ type Bootstrap struct {
 
     // admin http server
     AdminHTTPServer *http.Server
+
+    // admin port
+    adminPort int
 }
 
 func (bs Bootstrap) ConfigureDefaults() *Bootstrap {
@@ -110,6 +112,7 @@ func (bs Bootstrap) ConfigureDefaults() *Bootstrap {
     return &Bootstrap{
         ServiceStartedCounter:       servicesStartedCounter,
         ServiceHTTPServer:           serviceHTTPServer,
+        adminPort:                   defaultConfig.AdminPort,
     }
 }
 
@@ -192,7 +195,7 @@ func (bs Bootstrap) AdminHTTPServerWithHandlers(h service.Health) *http.Server {
     r.Handle(apiPath, mw.DecoratedHandler(apiHandler()))
 
     return &http.Server{
-        Addr:         fmt.Sprintf("0.0.0.0:%d", adminPort),
+        Addr:         fmt.Sprintf("0.0.0.0:%d", bs.adminPort),
         WriteTimeout: time.Second * 15,
         ReadTimeout:  time.Second * 15,
         IdleTimeout:  time.Second * 60,
