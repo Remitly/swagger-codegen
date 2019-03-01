@@ -1,75 +1,109 @@
 {{>licenseInfo}}
 package {{packageName}}
 
-import com.codahale.metrics.*
-import com.typesafe.config.ConfigFactory
-import io.ktor.application.*
-import io.ktor.client.HttpClient
 import io.ktor.client.engine.apache.Apache
-import io.ktor.config.HoconApplicationConfig
-import io.ktor.features.*
-import io.ktor.gson.GsonConverter
-import io.ktor.http.ContentType
-import io.ktor.locations.*
-import io.ktor.metrics.*
+import io.ktor.application.*
+import io.ktor.response.*
+import io.ktor.request.*
 import io.ktor.routing.*
-import java.util.concurrent.*
+import io.ktor.http.*
+import io.ktor.html.*
+import kotlinx.html.*
+import io.ktor.features.*
+import org.slf4j.event.*
+import com.fasterxml.jackson.databind.*
+import io.ktor.jackson.*
+import io.ktor.client.*
+import io.ktor.client.features.json.*
+import io.ktor.client.request.*
+import java.net.URL
+import kotlinx.coroutines.*
+import io.ktor.client.features.logging.*
 {{#generateApis}}
-import {{apiPackage}}.*
+//import {{apiPackage}}.*
 {{/generateApis}}
 
 {{#imports}}import {{import}}
 {{/imports}}
 
-internal val settings = HoconApplicationConfig(ConfigFactory.defaultApplication(HTTP::class.java.classLoader))
+fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
-object HTTP {
-    val client = HttpClient(Apache)
-}
-
-fun Application.main() {
-    install(DefaultHeaders)
-    install(Metrics) {
-        val reporter = Slf4jReporter.forRegistry(registry)
-                .outputTo(log)
-                .convertRatesTo(TimeUnit.SECONDS)
-                .convertDurationsTo(TimeUnit.MILLISECONDS)
-                .build()
-        reporter.start(10, TimeUnit.SECONDS)
+@Suppress("unused") // Referenced in application.conf
+@kotlin.jvm.JvmOverloads
+fun Application.module(testing: Boolean = false) {
+    install(CallLogging) {
+        level = Level.INFO
+        filter { call -> call.request.path().startsWith("/") }
     }
-{{#generateApis}}
+
     install(ContentNegotiation) {
-        register(ContentType.Application.Json, GsonConverter())
+        jackson {
+            enable(SerializationFeature.INDENT_OUTPUT)
+        }
     }
-    {{#featureAutoHead}}
-    install(AutoHeadResponse) // see http://ktor.io/features/autoheadresponse.html
-    {{/featureAutoHead}}
-    {{#featureConditionalHeaders}}
-    install(ConditionalHeaders) // see http://ktor.io/features/conditional-headers.html
-    {{/featureConditionalHeaders}}
-    {{#featureHSTS}}
-    install(HSTS, ApplicationHstsConfiguration()) // see http://ktor.io/features/hsts.html
-    {{/featureHSTS}}
-    {{#featureCORS}}
-    install(CORS, ApplicationCORSConfiguration()) // see http://ktor.io/features/cors.html
-    {{/featureCORS}}
-    {{#featureCompression}}
-    install(Compression, ApplicationCompressionConfiguration()) // see http://ktor.io/features/compression.html
-    {{/featureCompression}}
-    install(Locations) // see http://ktor.io/features/locations.html
-    install(Routing) {
-    {{#apiInfo}}
-    {{#apis}}
-    {{#operations}}
-        {{classname}}()
-    {{/operations}}
-    {{/apis}}
-    {{/apiInfo}}
-    }
-{{/generateApis}}
 
-    environment.monitor.subscribe(ApplicationStopping)
-    {
-        HTTP.client.close()
+    val client = HttpClient(Apache) {
+    // TODO: configure this
+    engine {
+        followRedirects = true  // Follow HTTP Location redirects - default false. It uses the default number of redirects defined by Apache's HttpClient that is 50.
+
+        // For timeouts: 0 means infinite, while negative value mean to use the system's default value
+        socketTimeout = 10_000  // Max time between TCP packets - default 10 seconds
+        connectTimeout = 10_000 // Max time to establish an HTTP connection - default 10 seconds
+        connectionRequestTimeout = 20_000 // Max time for the connection manager to start a request - 20 seconds
+
+        customizeClient {
+            // Apache's HttpAsyncClientBuilder
+            // setProxy(HttpHost("127.0.0.1", 8080))
+            setMaxConnTotal(1000) // Maximum number of socket connections.
+            setMaxConnPerRoute(100) // Maximum number of requests for a specific endpoint route.
+        }
+        customizeRequest {
+            // Apache's RequestConfig.Builder
+        }
+    }
+
+
+    install(JsonFeature) {
+            serializer = GsonSerializer()
+        }
+        install(Logging) {
+            level = LogLevel.HEADERS
+        }
+    }
+    runBlocking {
+        // Sample for making a HTTP Client request
+        /*
+        val message = client.post<JsonSampleClass> {
+            url(URL("http://127.0.0.1:8080/path/to/endpoint"))
+            contentType(ContentType.Application.Json)
+            body = JsonSampleClass(hello = "world")
+        }
+        */
+    }
+
+    routing {
+        get("/") {
+            call.respondText("HELLO WORLD!", contentType = ContentType.Text.Plain)
+        }
+
+        get("/html-dsl") {
+            call.respondHtml {
+                body {
+                    h1 { +"HTML" }
+                    ul {
+                        for (n in 1..10) {
+                            li { +"$n" }
+                        }
+                    }
+                }
+            }
+        }
+
+        get("/json/jackson") {
+            call.respond(mapOf("hello" to "world"))
+        }
     }
 }
+
+data class JsonSampleClass(val hello: String)

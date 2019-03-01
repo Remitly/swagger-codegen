@@ -24,6 +24,7 @@ import java.util.Map;
 
 import static io.swagger.codegen.CodegenConstants.GENERATE_APIS;
 
+@SuppressWarnings("Duplicates")
 public class KotlinServerCodegen extends AbstractKotlinCodegen {
 
     public static final String DEFAULT_LIBRARY = Constants.KTOR;
@@ -57,7 +58,7 @@ public class KotlinServerCodegen extends AbstractKotlinCodegen {
         packageName = "io.swagger.server";
         outputFolder = "generated-code" + File.separator + "kotlin-server";
         modelTemplateFiles.put("model.mustache", ".kt");
-        apiTemplateFiles.put("api.mustache", ".kt");
+//        apiTemplateFiles.put("api.mustache", ".kt");
         embeddedTemplateDir = templateDir = "kotlin-server";
         apiPackage = packageName + ".apis";
         modelPackage = packageName + ".models";
@@ -174,33 +175,33 @@ public class KotlinServerCodegen extends AbstractKotlinCodegen {
             additionalProperties.put(Constants.COMPRESSION, getCompressionFeatureEnabled());
         }
 
-        String packageFolder = (sourceFolder + File.separator + packageName).replace(".", File.separator);
-        String generatedFolder = packageFolder + File.separator + "generated";
-        String serviceFolder = packageFolder + File.separator + "service";
-        String serviceConfigFolder = serviceFolder + File.separator + "config";
-        String resourcesFolder = "src/main/resources"; // not sure this can be user configurable.
-        Boolean generateApis = additionalProperties.containsKey(GENERATE_APIS) && (Boolean)additionalProperties.get(GENERATE_APIS);
+        String generatedFolder = sourceFolder + File.separator + "generated";
+        String serviceFolder = sourceFolder + File.separator + "service";
+//        String serviceConfigFolder = serviceFolder + File.separator + "config";
+//        Boolean generateApis = additionalProperties.containsKey(GENERATE_APIS) && (Boolean)additionalProperties.get(GENERATE_APIS);
 
         // root
         supportingFiles.add(new SupportingFile("README.mustache", "", "README.md"));
-        supportingFiles.add(new SupportingFile("Dockerfile.mustache", "", "Dockerfile"));
         supportingFiles.add(new SupportingFile("build.gradle.mustache", "", "build.gradle"));
         supportingFiles.add(new SupportingFile("settings.gradle.mustache", "", "settings.gradle"));
         supportingFiles.add(new SupportingFile("gradle.properties", "", "gradle.properties"));
 
+        // TODO: remove as mothra has this
+        supportingFiles.add(new SupportingFile("Dockerfile.mustache", "", "Dockerfile"));
+
         // com.remitly.{{ .AppName }}
-        supportingFiles.add(new SupportingFile("AppMain.kt.mustache", packageFolder, "AppMain.kt"));
+        supportingFiles.add(new SupportingFile("AppMain.kt.mustache", sourceFolder, "AppMain.kt"));
 
         // com.remitly.{{ .AppName }}.generated
-        if (generateApis) {
-            supportingFiles.add(new SupportingFile("Paths.kt.mustache", generatedFolder, "Paths.kt"));
-        }
+//        if (generateApis) {
+//            supportingFiles.add(new SupportingFile("Paths.kt.mustache", generatedFolder, "Paths.kt"));
+//        }
 
         // com.remitly.{{ .AppName }}.service
-        supportingFiles.add(new SupportingFile("ApiKeyAuth.kt.mustache", serviceFolder, "ApiKeyAuth.kt"));
+//        supportingFiles.add(new SupportingFile("ApiKeyAuth.kt.mustache", serviceFolder, "ApiKeyAuth.kt"));
 
         // com.remitly.{{ .AppName }}.service.config
-        supportingFiles.add(new SupportingFile("Configuration.kt.mustache", serviceConfigFolder, "Configuration.kt"));
+//        supportingFiles.add(new SupportingFile("Configuration.kt.mustache", serviceConfigFolder, "Configuration.kt"));
 
         // TODO why are these under src/main/resources?
         supportingFiles.add(new SupportingFile("application.conf.mustache", resourcesFolder, "application.conf"));
