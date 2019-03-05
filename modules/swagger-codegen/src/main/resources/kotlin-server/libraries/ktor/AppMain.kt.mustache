@@ -32,6 +32,7 @@ import {{apiPackage}}.*
 {{/imports}}
 
 
+{{#lambda.dump}}//{{/lambda.dump}}
 
 object HTTP {
     val client = HttpClient(Apache)
@@ -44,9 +45,9 @@ object BSnag {
 }
 
 object Config {
-    const val serviceName = "SERVICE_NAME"
-    const val adminPort = 9080
+    const val serviceName = "{{artifactId}}"
     const val svcPort = 8080
+    const val adminPort = 9080
 }
 
 object Application {
@@ -96,17 +97,14 @@ fun NettyApplicationEngine.Configuration.instrumentServer() {
 }
 
 fun metricsIntegration(): MetricsIntegration {
-    //return MetricsIntegration.InstallMetrics(Config.adminPort)
-    return MetricsIntegration.IgnoreMetrics
+    return MetricsIntegration.InstallMetrics(Config.adminPort)
 }
 
 fun tracingIntegration(): TracingIntegration {
-    //return TracingIntegration.InstallTracing(Config.serviceName)
-    return TracingIntegration.IgnoreTracing
+    return TracingIntegration.InstallTracing(Config.serviceName)
 }
 
 fun bugsnagIntegration(): BugsnagIntegration {
-    //return InstallBugsnag(BSnag.client)
-    return BugsnagIntegration.IgnoreBugsnag
+    return InstallBugsnag(BSnag.client)
 }
 
