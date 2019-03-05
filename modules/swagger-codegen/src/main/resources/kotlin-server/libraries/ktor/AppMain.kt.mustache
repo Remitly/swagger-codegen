@@ -20,7 +20,7 @@ import io.ktor.gson.GsonConverter
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.response.respond
-import io.ktor.routing.Routing
+import io.ktor.routing.routing
 import io.ktor.server.netty.Netty
 import io.ktor.server.netty.NettyApplicationEngine
 
@@ -72,7 +72,7 @@ object Application {
                 register(ContentType.Application.Json, GsonConverter())
             }
             install(AutoHeadResponse)
-            install(Routing) {
+            routing {
                 {{#apiInfo}}
                 {{#apis}}
                 {{#operations}}
