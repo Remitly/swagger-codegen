@@ -48,6 +48,15 @@ shadowJar {
 }
 
 repositories {
+    maven {
+        url "s3://forgedeploy/maven/release"
+        authentication {
+            awsIm(AwsImAuthentication)
+        }
+        content {
+            includeGroupByRegex "com\\.remitly.*"
+        }
+    }
     mavenLocal()
     jcenter()
     maven { url 'https://kotlin.bintray.com/ktor' }
@@ -57,6 +66,8 @@ repositories {
 
 dependencies {
     compile "ch.qos.logback:logback-classic:$logback_version"
+    compile "com.remitly:tiny-logger-kotlin:${tiny_logger_version}"
+    compile "com.remitly:tiny-middleware-ktor:${tiny_middleware_version}"
     compile "io.ktor:ktor-client-apache:$ktor_version"
     compile "io.ktor:ktor-client-core-jvm:$ktor_version"
     compile "io.ktor:ktor-client-core:$ktor_version"
