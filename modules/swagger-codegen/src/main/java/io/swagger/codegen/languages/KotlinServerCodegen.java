@@ -222,6 +222,7 @@ public class KotlinServerCodegen extends AbstractKotlinCodegen {
                 .put("indented_8", new IndentedLambda(8, " "))
                 .put("indented_12", new IndentedLambda(12, " "))
                 .put("indented_16", new IndentedLambda(16, " "))
+                .put("dump", new DumpLambda())
                 .build();
 
         if (objs.containsKey("lambda")) {

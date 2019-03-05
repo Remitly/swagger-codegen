@@ -3,7 +3,12 @@
 {{#vars}}
  * @param {{name}} {{{description}}}
 {{/vars}}
+
+{{#lambda.dump}}{{/lambda.dump}}
+
  */
+
+
 data class {{classname}} (
 {{#requiredVars}}
 {{>data_class_req_var}}{{^-last}},

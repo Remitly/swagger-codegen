@@ -4,6 +4,8 @@ package {{modelPackage}}
 {{#imports}}import {{import}}
 {{/imports}}
 
+// {{#lambda.dump}}//{{/lambda.dump}}
+
 {{#models}}
 {{#model}}
 {{#isEnum}}{{>enum_class}}{{/isEnum}}{{^isEnum}}{{>data_class}}{{/isEnum}}
