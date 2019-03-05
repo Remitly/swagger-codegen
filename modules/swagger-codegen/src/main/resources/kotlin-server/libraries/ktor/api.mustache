@@ -1,0 +1,23 @@
+{{>licenseInfo}}
+package {{apiPackage}}
+
+import io.ktor.application.call
+import io.ktor.http.HttpStatusCode
+import io.ktor.response.respond
+import io.ktor.routing.*
+
+
+{{#imports}}import {{import}}
+{{/imports}}
+
+{{#operations}}
+fun Route.{{classname}}() {
+{{#operation}}
+    route("{{path}}") {
+        {{#lambda.lowercase}}{{httpMethod}}{{/lambda.lowercase}} {
+            call.respond(HttpStatusCode.NotImplemented)
+        }
+    }
+{{/operation}}
+}
+{{/operations}}
