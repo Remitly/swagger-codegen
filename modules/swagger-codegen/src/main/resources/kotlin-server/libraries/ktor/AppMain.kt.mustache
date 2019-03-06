@@ -44,7 +44,15 @@ object Config {
     lateinit var configuration: Configuration
 }
 
-class DefaultConfig(args: Array<String>){
+fun customConfig() : Array<CommandLineOption> {
+    val configExample = "example"
+    val keyExample = Key(configExample, stringType)
+    return arrayOf(
+        CommandLineOption(keyExample, "example", "e", "Replace with a real config")
+    )
+}
+
+class DefaultConfig(args: Array<String>, customCommandLineOptions: Array<CommandLineOption>){
     companion object {
         private const val configLogLevel = "log.level"
         private const val configServicePort = "service.port"
@@ -77,7 +85,9 @@ class DefaultConfig(args: Array<String>){
             CommandLineOption(keyBugsnagReleaseStage, "bugsnag-release-stage", "s", "Bugsnag Release Stage (default: $defaultReleaseStage)"),
             CommandLineOption(keyServicePort, "port", "p", "Service port (default: $defaultConfigServicePort)"),
             CommandLineOption(keyAdminPort, "admin-port", "a", "Admin port (default: $defaultConfigAdminPort)"),
-            CommandLineOption(keyRateLimit, "rate-limit", "r", "Maximum number of requests / second (default: $defaultConfigRateLimit)")
+            CommandLineOption(keyRateLimit, "rate-limit", "r", "Maximum number of requests / second (default: $defaultConfigRateLimit)"),
+            *customCommandLineOptions,
+            programName = Config.serviceName
         )
         cmdLineConfig = parsedCommandLineConfig
     }
@@ -102,7 +112,7 @@ object Application {
     @JvmStatic
     fun main(args: Array<String>) {
 
-        Config.configuration = DefaultConfig(args).configuration
+        Config.configuration = DefaultConfig(args, customConfig()).configuration
 
         val ktor = instrumentedServer(
             factory = Netty,
@@ -155,7 +165,7 @@ fun tracingIntegration(): TracingIntegration {
 
 fun bugsnagIntegration(key: String, stage: String): BugsnagIntegration {
     val client = Bugsnag(key).apply{
-            // Configure your client
+        this.setReleaseStage(stage)
     }
     return InstallBugsnag(client)
 }
