@@ -2,28 +2,29 @@
 package {{packageName}}
 
 import com.bugsnag.Bugsnag
+import com.natpryce.konfig.CommandLineOption
+import com.natpryce.konfig.Configuration
+import com.natpryce.konfig.Key
+import com.natpryce.konfig.stringType
 import com.remitly.ktor.BugsnagIntegration
 import com.remitly.ktor.BugsnagIntegration.InstallBugsnag
-import com.remitly.ktor.instrumentedServer
 import com.remitly.ktor.MetricsIntegration
 import com.remitly.ktor.TracingIntegration
+import com.remitly.ktor.instrumentedServer
 import io.ktor.application.ApplicationStopping
 import io.ktor.application.call
 import io.ktor.application.install
-import io.ktor.client.engine.apache.Apache
 import io.ktor.client.HttpClient
-import io.ktor.features.AutoHeadResponse
+import io.ktor.client.engine.apache.Apache
 import io.ktor.features.ContentNegotiation
-import io.ktor.features.DefaultHeaders
 import io.ktor.features.StatusPages
-import io.ktor.gson.GsonConverter
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.jackson.JacksonConverter
 import io.ktor.response.respond
 import io.ktor.routing.routing
 import io.ktor.server.netty.Netty
 import io.ktor.server.netty.NettyApplicationEngine
-import com.natpryce.konfig.*
 
 {{#generateApis}}
 import {{apiPackage}}.*
@@ -38,7 +39,6 @@ object HTTP {
     val client = HttpClient(Apache)
 }
 
-// see https://www.kotlinresources.com/library/konfig/
 object Config {
     const val serviceName = "{{artifactId}}"
     lateinit var configuration: Configuration
@@ -72,11 +72,9 @@ object Application {
                     call.respond(HttpStatusCode.InternalServerError)
                 }
             }
-            install(DefaultHeaders)
             install(ContentNegotiation) {
-                register(ContentType.Application.Json, GsonConverter())
+                register(ContentType.Application.Json, JacksonConverter())
             }
-            install(AutoHeadResponse)
             routing {
                 {{#apiInfo}}
                 {{#apis}}
