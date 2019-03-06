@@ -23,6 +23,8 @@ import io.ktor.response.respond
 import io.ktor.routing.routing
 import io.ktor.server.netty.Netty
 import io.ktor.server.netty.NettyApplicationEngine
+import com.natpryce.konfig.*
+import com.natpryce.konfig.ConfigurationProperties.Companion.systemProperties
 
 {{#generateApis}}
 import {{apiPackage}}.*
@@ -31,8 +33,6 @@ import {{apiPackage}}.*
 {{#imports}}import {{import}}
 {{/imports}}
 
-
-{{#lambda.dump}}//{{/lambda.dump}}
 
 object HTTP {
     val client = HttpClient(Apache)
@@ -44,20 +44,35 @@ object BSnag {
     }
 }
 
+// see https://www.kotlinresources.com/library/konfig/
 object Config {
     const val serviceName = "{{artifactId}}"
-    const val svcPort = 8080
-    const val adminPort = 9080
+
+    val service_port = Key("service.port", intType)
+    val admin_port = Key("admin.port", intType)
+
+    var config =
+                systemProperties() overriding
+                EnvironmentVariables() overriding
+                ConfigurationMap("service.port" to "8080", "admin.port" to "9080")
 }
+
 
 object Application {
 
     @JvmStatic
     fun main(args: Array<String>) {
 
+        val (cmdLine, argumentsList) = parseArgs(args,
+            CommandLineOption(Config.service_port, "service-port", "p", "Port service runs on"),
+            CommandLineOption(Config.admin_port, "admin-port", "a", "Port admin runs on")
+        )
+
+        Config.config = cmdLine overriding Config.config
+
         val ktor = instrumentedServer(
             factory = Netty,
-            port = Config.svcPort,
+            port = Config.config[Config.service_port],
             bugsnag = bugsnagIntegration(),
             tracing = tracingIntegration(),
             metrics = metricsIntegration(),
@@ -97,7 +112,7 @@ fun NettyApplicationEngine.Configuration.instrumentServer() {
 }
 
 fun metricsIntegration(): MetricsIntegration {
-    return MetricsIntegration.InstallMetrics(Config.adminPort)
+    return MetricsIntegration.InstallMetrics(Config.config[Config.admin_port])
 }
 
 fun tracingIntegration(): TracingIntegration {

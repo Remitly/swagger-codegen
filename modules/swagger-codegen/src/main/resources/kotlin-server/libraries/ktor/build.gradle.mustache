@@ -61,11 +61,13 @@ repositories {
     jcenter()
     maven { url 'https://kotlin.bintray.com/ktor' }
     maven { url 'https://kotlin.bintray.com/kotlinx' }
+    mavenCentral()
 }
 
 
 dependencies {
     compile "ch.qos.logback:logback-classic:$logback_version"
+    compile "com.natpryce:konfig:$konfig_version"
     compile "com.remitly:tiny-logger-kotlin:${tiny_logger_version}"
     compile "com.remitly:tiny-middleware-ktor:${tiny_middleware_version}"
     compile "io.ktor:ktor-client-apache:$ktor_version"
