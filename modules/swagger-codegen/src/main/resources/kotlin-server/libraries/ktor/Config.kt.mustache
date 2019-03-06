@@ -33,7 +33,7 @@ class DefaultConfig(args: Array<String>, customCommandLineOptions: Array<Command
     private val cmdLineConfig : Configuration
 
     init {
-        val (parsedCommandLineConfig, argumentsList) = parseArgs(args,
+        val (parsedCommandLineConfig, _) = parseArgs(args,
             CommandLineOption(keyLogLevel, "log-level", "l", "Logging level (default: $defaultConfigLogLevel)"),
             CommandLineOption(keyBugsnagApiKey, "bugsnag-api-key", "k", "Bugsnag API Key"),
             CommandLineOption(keyBugsnagReleaseStage, "bugsnag-release-stage", "s", "Bugsnag Release Stage (default: $defaultReleaseStage)"),

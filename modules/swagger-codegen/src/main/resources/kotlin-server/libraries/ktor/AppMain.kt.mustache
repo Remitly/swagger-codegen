@@ -11,6 +11,10 @@ import com.remitly.ktor.BugsnagIntegration.InstallBugsnag
 import com.remitly.ktor.MetricsIntegration
 import com.remitly.ktor.TracingIntegration
 import com.remitly.ktor.instrumentedServer
+import com.remitly.logging.LogLevel
+import com.remitly.logging.LoggerFactory
+import com.remitly.logging.getLogger
+import com.remitly.logging.getLogger
 import io.ktor.application.ApplicationStopping
 import io.ktor.application.call
 import io.ktor.application.install
@@ -53,11 +57,13 @@ fun customConfig() : Array<CommandLineOption> {
 }
 
 object Application {
-
     @JvmStatic
     fun main(args: Array<String>) {
 
         Config.configuration = DefaultConfig(args, customConfig(), Config.serviceName).configuration
+
+        setLogLevel()
+        val logger = getLogger()
 
         val ktor = instrumentedServer(
             factory = Netty,
@@ -67,14 +73,17 @@ object Application {
             metrics = metricsIntegration(),
             configureApplicationEngine = NettyApplicationEngine.Configuration::instrumentServer
         ) {
+            logger.debug("installing status pages", fields = { mapOf("svc" to Config.serviceName) })
             install(StatusPages) {
                 exception<Throwable> {
                     call.respond(HttpStatusCode.InternalServerError)
                 }
             }
+            logger.debug("installing content negotiation", fields = { mapOf("svc" to Config.serviceName) })
             install(ContentNegotiation) {
                 register(ContentType.Application.Json, JacksonConverter())
             }
+            logger.debug("installing routing", fields = { mapOf("svc" to Config.serviceName) })
             routing {
                 {{#apiInfo}}
                 {{#apis}}
@@ -90,7 +99,18 @@ object Application {
             }
         }
 
+        logger.debug("starting...", fields = { mapOf("svc" to Config.serviceName) })
         ktor.start(wait = true)
+    }
+    private fun setLogLevel() {
+        when (Config.configuration[DefaultConfig.keyLogLevel]) {
+            "debug" -> LoggerFactory.setLogLevel(LogLevel.DEBUG)
+            "info" -> LoggerFactory.setLogLevel(LogLevel.INFO)
+            "warn" -> LoggerFactory.setLogLevel(LogLevel.WARN)
+            "error" -> LoggerFactory.setLogLevel(LogLevel.ERROR)
+            "fatal" -> LoggerFactory.setLogLevel(LogLevel.FATAL)
+            else -> LoggerFactory.setLogLevel(LogLevel.INFO)
+        }
     }
 }
 
