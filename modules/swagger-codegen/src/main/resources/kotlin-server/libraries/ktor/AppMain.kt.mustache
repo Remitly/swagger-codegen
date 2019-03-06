@@ -38,42 +38,76 @@ object HTTP {
     val client = HttpClient(Apache)
 }
 
-object BSnag {
-    val client = Bugsnag("YourKey").apply{
-        // Configure your client
-    }
-}
-
 // see https://www.kotlinresources.com/library/konfig/
 object Config {
     const val serviceName = "{{artifactId}}"
-
-    val service_port = Key("service.port", intType)
-    val admin_port = Key("admin.port", intType)
-
-    var config =
-                systemProperties() overriding
-                EnvironmentVariables() overriding
-                ConfigurationMap("service.port" to "8080", "admin.port" to "9080")
+    lateinit var configuration: Configuration
 }
 
+class DefaultConfig(args: Array<String>){
+    companion object {
+        private const val configLogLevel = "log.level"
+        private const val configServicePort = "service.port"
+        private const val configAdminPort = "admin.port"
+        private const val configBugsnagApiKey = "bugsnag.api.key"
+        private const val configBugsnagReleaseStage = "bugsnag.release.stage"
+        private const val configRateLimit = "rate.limit"
+
+        val keyLogLevel = Key(configLogLevel, stringType)
+        val keyServicePort = Key(configServicePort, intType)
+        val keyAdminPort = Key(configAdminPort, intType)
+        val keyBugsnagApiKey = Key(configBugsnagApiKey, stringType)
+        val keyBugsnagReleaseStage = Key(configBugsnagReleaseStage, stringType)
+        val keyRateLimit = Key(configRateLimit, doubleType)
+    }
+
+    private val defaultConfigLogLevel = "info"
+    private val defaultConfigServicePort = 8080
+    private val defaultConfigAdminPort = 9080
+    private val defaultReleaseStage = "preprod"
+    private val defaultConfigRateLimit = 1000.0
+
+
+    private val cmdLineConfig : Configuration
+
+    init {
+        val (parsedCommandLineConfig, argumentsList) = parseArgs(args,
+            CommandLineOption(keyLogLevel, "log-level", "l", "Logging level (default: $defaultConfigLogLevel)"),
+            CommandLineOption(keyBugsnagApiKey, "bugsnag-api-key", "k", "Bugsnag API Key"),
+            CommandLineOption(keyBugsnagReleaseStage, "bugsnag-release-stage", "s", "Bugsnag Release Stage (default: $defaultReleaseStage)"),
+            CommandLineOption(keyServicePort, "port", "p", "Service port (default: $defaultConfigServicePort)"),
+            CommandLineOption(keyAdminPort, "admin-port", "a", "Admin port (default: $defaultConfigAdminPort)"),
+            CommandLineOption(keyRateLimit, "rate-limit", "r", "Maximum number of requests / second (default: $defaultConfigRateLimit)")
+        )
+        cmdLineConfig = parsedCommandLineConfig
+    }
+
+
+    val configuration =
+        cmdLineConfig overriding
+        systemProperties() overriding
+        EnvironmentVariables() overriding
+        ConfigurationMap(
+            configLogLevel to defaultConfigLogLevel,
+            configServicePort to defaultConfigServicePort.toString(),
+            configAdminPort to defaultConfigAdminPort.toString(),
+            configBugsnagApiKey to "",
+            configBugsnagReleaseStage to defaultReleaseStage,
+            configRateLimit to defaultConfigRateLimit.toString())
+
+}
 
 object Application {
 
     @JvmStatic
     fun main(args: Array<String>) {
 
-        val (cmdLine, argumentsList) = parseArgs(args,
-            CommandLineOption(Config.service_port, "service-port", "p", "Port service runs on"),
-            CommandLineOption(Config.admin_port, "admin-port", "a", "Port admin runs on")
-        )
-
-        Config.config = cmdLine overriding Config.config
+        Config.configuration = DefaultConfig(args).configuration
 
         val ktor = instrumentedServer(
             factory = Netty,
-            port = Config.config[Config.service_port],
-            bugsnag = bugsnagIntegration(),
+            port = Config.configuration[DefaultConfig.keyServicePort],
+            bugsnag = bugsnagIntegration(Config.configuration[DefaultConfig.keyBugsnagApiKey], Config.configuration[DefaultConfig.keyBugsnagReleaseStage]),
             tracing = tracingIntegration(),
             metrics = metricsIntegration(),
             configureApplicationEngine = NettyApplicationEngine.Configuration::instrumentServer
@@ -112,14 +146,17 @@ fun NettyApplicationEngine.Configuration.instrumentServer() {
 }
 
 fun metricsIntegration(): MetricsIntegration {
-    return MetricsIntegration.InstallMetrics(Config.config[Config.admin_port])
+    return MetricsIntegration.InstallMetrics(Config.configuration[DefaultConfig.keyAdminPort])
 }
 
 fun tracingIntegration(): TracingIntegration {
     return TracingIntegration.InstallTracing(Config.serviceName)
 }
 
-fun bugsnagIntegration(): BugsnagIntegration {
-    return InstallBugsnag(BSnag.client)
+fun bugsnagIntegration(key: String, stage: String): BugsnagIntegration {
+    val client = Bugsnag(key).apply{
+            // Configure your client
+    }
+    return InstallBugsnag(client)
 }
 
