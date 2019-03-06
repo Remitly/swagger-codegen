@@ -1,0 +1,63 @@
+{{>licenseInfo}}
+package {{packageName}}.generated
+
+
+import com.natpryce.konfig.*
+import com.natpryce.konfig.ConfigurationProperties.Companion.systemProperties
+
+
+class DefaultConfig(args: Array<String>, customCommandLineOptions: Array<CommandLineOption>, name: String){
+    companion object {
+        private const val configLogLevel = "log.level"
+        private const val configServicePort = "service.port"
+        private const val configAdminPort = "admin.port"
+        private const val configBugsnagApiKey = "bugsnag.api.key"
+        private const val configBugsnagReleaseStage = "bugsnag.release.stage"
+        private const val configRateLimit = "rate.limit"
+
+        val keyLogLevel = Key(configLogLevel, stringType)
+        val keyServicePort = Key(configServicePort, intType)
+        val keyAdminPort = Key(configAdminPort, intType)
+        val keyBugsnagApiKey = Key(configBugsnagApiKey, stringType)
+        val keyBugsnagReleaseStage = Key(configBugsnagReleaseStage, stringType)
+        val keyRateLimit = Key(configRateLimit, doubleType)
+    }
+
+    private val defaultConfigLogLevel = "info"
+    private val defaultConfigServicePort = 8080
+    private val defaultConfigAdminPort = 9080
+    private val defaultReleaseStage = "preprod"
+    private val defaultConfigRateLimit = 1000.0
+
+
+    private val cmdLineConfig : Configuration
+
+    init {
+        val (parsedCommandLineConfig, argumentsList) = parseArgs(args,
+            CommandLineOption(keyLogLevel, "log-level", "l", "Logging level (default: $defaultConfigLogLevel)"),
+            CommandLineOption(keyBugsnagApiKey, "bugsnag-api-key", "k", "Bugsnag API Key"),
+            CommandLineOption(keyBugsnagReleaseStage, "bugsnag-release-stage", "s", "Bugsnag Release Stage (default: $defaultReleaseStage)"),
+            CommandLineOption(keyServicePort, "port", "p", "Service port (default: $defaultConfigServicePort)"),
+            CommandLineOption(keyAdminPort, "admin-port", "a", "Admin port (default: $defaultConfigAdminPort)"),
+            CommandLineOption(keyRateLimit, "rate-limit", "r", "Maximum number of requests / second (default: $defaultConfigRateLimit)"),
+            *customCommandLineOptions,
+            programName = name
+        )
+        cmdLineConfig = parsedCommandLineConfig
+    }
+
+
+    val configuration =
+        cmdLineConfig overriding
+        systemProperties() overriding
+        EnvironmentVariables() overriding
+        ConfigurationMap(
+            configLogLevel to defaultConfigLogLevel,
+            configServicePort to defaultConfigServicePort.toString(),
+            configAdminPort to defaultConfigAdminPort.toString(),
+            configBugsnagApiKey to "",
+            configBugsnagReleaseStage to defaultReleaseStage,
+            configRateLimit to defaultConfigRateLimit.toString())
+}
+
+

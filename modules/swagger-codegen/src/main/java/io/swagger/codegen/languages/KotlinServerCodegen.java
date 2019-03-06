@@ -175,10 +175,7 @@ public class KotlinServerCodegen extends AbstractKotlinCodegen {
             additionalProperties.put(Constants.COMPRESSION, getCompressionFeatureEnabled());
         }
 
-        String generatedFolder = sourceFolder + File.separator + "generated";
-        String serviceFolder = sourceFolder + File.separator + "service";
-//        String serviceConfigFolder = serviceFolder + File.separator + "config";
-//        Boolean generateApis = additionalProperties.containsKey(GENERATE_APIS) && (Boolean)additionalProperties.get(GENERATE_APIS);
+        String generatedFolder = sourceFolder + File.separator + packageName.replace('.', File.separatorChar) + File.separator + "generated";
 
         // root
         supportingFiles.add(new SupportingFile("README.mustache", "", "README.md"));
@@ -196,6 +193,9 @@ public class KotlinServerCodegen extends AbstractKotlinCodegen {
 //        if (generateApis) {
 //            supportingFiles.add(new SupportingFile("Paths.kt.mustache", generatedFolder, "Paths.kt"));
 //        }
+        // com.remitly.{{ .AppName }}.generated
+        supportingFiles.add(new SupportingFile("Config.kt.mustache", generatedFolder, "Config.kt"));
+
 
         // com.remitly.{{ .AppName }}.service
 //        supportingFiles.add(new SupportingFile("ApiKeyAuth.kt.mustache", serviceFolder, "ApiKeyAuth.kt"));
