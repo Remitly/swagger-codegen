@@ -142,13 +142,13 @@ func (bs Bootstrap) parseConfig(defaultConfig *config.DefaultConfig) {
 
 func (bs Bootstrap) serviceStartedCounter(serviceName string) prometheus.Counter {
     return promauto.NewCounter(prometheus.CounterOpts{
-        Name: fmt.Sprintf("%s_svc_started_total", serviceName),
+        Name: "svc_started_total",
         Help: "The total number of times the service has started",
     })
 }
 
 func (bs Bootstrap) serviceHTTPServer(serviceName string, defaultConfig *config.DefaultConfig) *http.Server {
-    var mw = tinym.NewTinyServiceMiddleware(serviceName, defaultConfig, defaultConfig.RateLimit, rateLimitExceededMessage).Init()
+    var mw = tinym.NewTinyServiceMiddleware("svc", defaultConfig, defaultConfig.RateLimit, rateLimitExceededMessage).Init()
     return bs.ServiceHTTPServerWithMiddleware(mw.DecoratedHandler, defaultConfig.Port)
 }
 
@@ -180,7 +180,7 @@ func apiHandler() http.HandlerFunc {
 
 func (bs Bootstrap) AdminHTTPServerWithHandlers(h service.Health) *http.Server {
     rateLimitRequestsPerSecond := 10.0
-    var mw = tinym.NewTinyServiceMiddleware("{{serviceName}}admin", nil, rateLimitRequestsPerSecond, rateLimitExceededMessage).Init()
+    var mw = tinym.NewTinyServiceMiddleware("admin", nil, rateLimitRequestsPerSecond, rateLimitExceededMessage).Init()
 
     r := mux.NewRouter()
 
