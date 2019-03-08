@@ -23,10 +23,9 @@ public abstract class AbstractKotlinCodegen extends DefaultCodegen implements Co
     protected String artifactVersion = "1.0.0";
     protected String groupId = "io.swagger";
     protected String packageName;
-    protected String sourceFolder = "src";
-    protected String testFolder = "test";
-    protected String resourcesFolder = "resources";
-    protected String testResourcesFolder = "testresources";
+    protected String sourceFolder = "src" + File.separator + "main" + File.separator + "kotlin";
+//    protected String testFolder = "src" + File.separator + "test" + File.separator + "kotlin";
+    protected String resourcesFolder = "src" + File.separator + "main" + File.separator +"resources";
 
 
     protected String apiDocPath = "docs/";

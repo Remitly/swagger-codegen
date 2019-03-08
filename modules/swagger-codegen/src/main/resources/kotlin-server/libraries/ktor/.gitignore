@@ -1,7 +1,18 @@
-/.gradle
-/.idea
-/out
-/build
-*.iml
-*.ipr
-*.iws
+build
+out
+target
+
+!.gitignore
+!.editorconfig
+
+.idea
+!.idea/gradle.xml
+.DS_Store
+
+# Build
+.gradle/
+Vagrantfile
+overrides.yml
+.forge/
+.vagrant/
+fpkg/
