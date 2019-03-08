@@ -179,7 +179,6 @@ public class KotlinServerCodegen extends AbstractKotlinCodegen {
         String generatedFolder = packageRootFolder + File.separator + "generated";
 
         // root
-        supportingFiles.add(new SupportingFile("README.mustache", "", "README.md"));
         supportingFiles.add(new SupportingFile("build.gradle.mustache", "", "build.gradle"));
         supportingFiles.add(new SupportingFile("settings.gradle.mustache", "", "settings.gradle"));
         supportingFiles.add(new SupportingFile("gradle.properties", "", "gradle.properties"));
