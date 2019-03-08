@@ -175,7 +175,8 @@ public class KotlinServerCodegen extends AbstractKotlinCodegen {
             additionalProperties.put(Constants.COMPRESSION, getCompressionFeatureEnabled());
         }
 
-        String generatedFolder = sourceFolder + File.separator + packageName.replace('.', File.separatorChar) + File.separator + "generated";
+        String packageRootFolder = sourceFolder + File.separator + packageName.replace('.', File.separatorChar);
+        String generatedFolder = packageRootFolder + File.separator + "generated";
 
         // root
         supportingFiles.add(new SupportingFile("README.mustache", "", "README.md"));
@@ -183,30 +184,15 @@ public class KotlinServerCodegen extends AbstractKotlinCodegen {
         supportingFiles.add(new SupportingFile("settings.gradle.mustache", "", "settings.gradle"));
         supportingFiles.add(new SupportingFile("gradle.properties", "", "gradle.properties"));
 
-        // TODO: remove as mothra has this
-        supportingFiles.add(new SupportingFile("Dockerfile.mustache", "", "Dockerfile"));
-
         // com.remitly.{{ .AppName }}
-        supportingFiles.add(new SupportingFile("AppMain.kt.mustache", sourceFolder, "AppMain.kt"));
+        supportingFiles.add(new SupportingFile("AppMain.kt.mustache", packageRootFolder, "AppMain.kt"));
 
-        // com.remitly.{{ .AppName }}.generated
-//        if (generateApis) {
-//            supportingFiles.add(new SupportingFile("Paths.kt.mustache", generatedFolder, "Paths.kt"));
-//        }
         // com.remitly.{{ .AppName }}.generated
         supportingFiles.add(new SupportingFile("Config.kt.mustache", generatedFolder, "Config.kt"));
 
-
-        // com.remitly.{{ .AppName }}.service
-//        supportingFiles.add(new SupportingFile("ApiKeyAuth.kt.mustache", serviceFolder, "ApiKeyAuth.kt"));
-
-        // com.remitly.{{ .AppName }}.service.config
-//        supportingFiles.add(new SupportingFile("Configuration.kt.mustache", serviceConfigFolder, "Configuration.kt"));
-
-        // TODO why are these under src/main/resources?
+        // src/main/resources
         supportingFiles.add(new SupportingFile("application.conf.mustache", resourcesFolder, "application.conf"));
         supportingFiles.add(new SupportingFile("logback.xml", resourcesFolder, "logback.xml"));
-
 
         addMustacheLambdas(additionalProperties);
     }
