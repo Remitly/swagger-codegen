@@ -43,8 +43,8 @@ compileTestKotlin {
 }
 
 shadowJar {
-    version = null
     archiveName = "{{artifactId}}.jar"
+    mergeServiceFiles()
 }
 
 repositories {
@@ -53,6 +53,7 @@ repositories {
         authentication {
             awsIm(AwsImAuthentication)
         }
+        // go ahead and remove the content filter if this get's in your way
         content {
             includeGroupByRegex "com\\.remitly.*"
         }
@@ -61,28 +62,27 @@ repositories {
     jcenter()
     maven { url 'https://kotlin.bintray.com/ktor' }
     maven { url 'https://kotlin.bintray.com/kotlinx' }
-    mavenCentral()
 }
 
 
 dependencies {
-    compile "ch.qos.logback:logback-classic:$logback_version"
-    compile "com.natpryce:konfig:$konfig_version"
-    compile "com.remitly:tiny-logger-kotlin:${tiny_logger_version}"
-    compile "com.remitly:tiny-middleware-ktor:${tiny_middleware_version}"
-    compile "io.ktor:ktor-client-apache:$ktor_version"
-    compile "io.ktor:ktor-client-core-jvm:$ktor_version"
-    compile "io.ktor:ktor-client-core:$ktor_version"
-    compile "io.ktor:ktor-client-json-jvm:$ktor_version"
-    compile "io.ktor:ktor-client-logging-jvm:$ktor_version"
-    compile "io.ktor:ktor-html-builder:$ktor_version"
-    compile "io.ktor:ktor-jackson:$ktor_version"
-    compile "io.ktor:ktor-locations:$ktor_version"
-    compile "io.ktor:ktor-metrics:$ktor_version"
-    compile "io.ktor:ktor-server-core:$ktor_version"
-    compile "io.ktor:ktor-server-host-common:$ktor_version"
-    compile "io.ktor:ktor-server-netty:$ktor_version"
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation "ch.qos.logback:logback-classic:$logback_version"
+    implementation "com.natpryce:konfig:$konfig_version"
+    implementation "com.remitly:tiny-logger-kotlin:${tiny_logger_version}"
+    implementation "com.remitly:tiny-middleware-ktor:${tiny_middleware_version}"
+    implementation "io.ktor:ktor-client-apache:$ktor_version"
+    implementation "io.ktor:ktor-client-core-jvm:$ktor_version"
+    implementation "io.ktor:ktor-client-core:$ktor_version"
+    implementation "io.ktor:ktor-client-json-jvm:$ktor_version"
+    implementation "io.ktor:ktor-client-logging-jvm:$ktor_version"
+    implementation "io.ktor:ktor-html-builder:$ktor_version"
+    implementation "io.ktor:ktor-jackson:$ktor_version"
+    implementation "io.ktor:ktor-locations:$ktor_version"
+    implementation "io.ktor:ktor-metrics:$ktor_version"
+    implementation "io.ktor:ktor-server-core:$ktor_version"
+    implementation "io.ktor:ktor-server-host-common:$ktor_version"
+    implementation "io.ktor:ktor-server-netty:$ktor_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     implementation "com.bugsnag:bugsnag:$bugsnag_version"
     implementation "io.prometheus:simpleclient:$prometheus_version"
     testCompile group: 'junit', name: 'junit', version:"$junit_version"
