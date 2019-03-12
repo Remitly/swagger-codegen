@@ -24,7 +24,7 @@ Example of overriding the service middleware. Do this anywhere before calling La
 */
 func main() {
     // choose a logger from tiny-logger-go/log {zero|logrus}
-    log.SetLogger(zero.NewDefaultLogger())
+    log.SetLogger(zero.New("{{serviceName}}"))
 
     // configure the service (excepting the health check which is configured next)
     boot := runtime.Bootstrap{}.ConfigureDefaults()
