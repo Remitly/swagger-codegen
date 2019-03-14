@@ -1,0 +1,20 @@
+name: swagger-codegen 
+
+jenkinsjavaimage: &jenkinsjavaimage
+  pack: custom
+  image: 186612847456.dkr.ecr.us-west-2.amazonaws.com/ms/java-service:0.0.5
+  boundDirs:
+    - appdir:/code
+    - /var/lib/jenkins/.m2/repository:/maven
+#    - /home/toddg/.m2/repository:/maven
+  workingDir: /code
+
+# The command executed when you run `forge build`
+build:
+  - cmd: mvn package -s settings.xml
+    <<: *jenkinsjavaimage
+
+# images this app is built to run on
+images:
+  - type: ubuntu
+    version: 1.7
