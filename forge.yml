@@ -8,13 +8,24 @@ jenkinsjavaimage: &jenkinsjavaimage
     - /home/ubuntu/.m2/repository:/maven
   workingDir: /code
 
+jenkinsjavaimage2: &jenkinsjavaimage2
+  pack: custom
+  image: 186612847456.dkr.ecr.us-west-2.amazonaws.com/ms/java-service:0.0.5
+  boundDirs:
+    - appdir:/code
+    - /var/lib/jenkins/.m2/repository:/maven
+  workingDir: /code
+
 # The command executed when you run `forge build`
 build:
   - cmd: mvn package -s settings.xml
     <<: *jenkinsjavaimage
 
 tasks:
-    xbuild:
+    fallback1:
+      - cmd: mvn package -s settings.xml
+        <<: *jenkinsjavaimage2
+    fallback2:
       - cmd: mvn package
         <<: *jenkinsjavaimage
 
