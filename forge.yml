@@ -13,6 +13,11 @@ build:
   - cmd: mvn package -s settings.xml
     <<: *jenkinsjavaimage
 
+tasks:
+    xbuild:
+      - cmd: mvn package
+        <<: *jenkinsjavaimage
+
 # images this app is built to run on
 images:
   - type: ubuntu
