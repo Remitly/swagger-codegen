@@ -1,6 +1,6 @@
 name: swagger-codegen 
 
-jenkinsjavaimage: &jenkinsjavaimage
+jenkinsjavaimage1: &jenkinsjavaimage1
   pack: custom
   image: 186612847456.dkr.ecr.us-west-2.amazonaws.com/ms/java-service:0.0.5
   boundDirs:
@@ -16,18 +16,35 @@ jenkinsjavaimage2: &jenkinsjavaimage2
     - /var/lib/jenkins/.m2/repository:/maven
   workingDir: /code
 
+localjavaimage: &localjavaimage
+  pack: custom
+  image: 186612847456.dkr.ecr.us-west-2.amazonaws.com/ms/java-service:0.0.5
+  boundDirs:
+    - appdir:/code
+    - /home/toddg/.m2/repository:/maven
+  workingDir: /code
+
 # The command executed when you run `forge build`
 build:
   - cmd: mvn package -s settings.xml
-    <<: *jenkinsjavaimage
+    <<: *jenkinsjavaimage1
 
 tasks:
-    fallback1:
+    build2:
       - cmd: mvn package -s settings.xml
         <<: *jenkinsjavaimage2
-    fallback2:
+    build3:
       - cmd: mvn package
-        <<: *jenkinsjavaimage
+        <<: *jenkinsjavaimage2
+    purge1:
+      - cmd: mvn dependency:purge-local-repository -s settings.xml
+        <<: *jenkinsjavaimage1
+    purge2:
+      - cmd: mvn dependency:purge-local-repository -s settings.xml
+        <<: *jenkinsjavaimage2
+    purge3:
+      - cmd: mvn dependency:purge-local-repository -s settings.xml
+        <<: *localjavaimage
 
 # images this app is built to run on
 images:
