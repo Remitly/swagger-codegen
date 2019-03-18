@@ -1,10 +1,10 @@
 #!/bin/bash
 
-	forge run purge1; \
+	forge build; \
 	if [ "$?" != "0" ] ; then \
-		forge run purge2; \
+		forge run build2; \
 		if [ "$?" != "0" ] ; then \
-			forge run purge3; \
+			forge run build3; \
 			if [ "$?" != "0" ] ; then exit 1; fi; \
 		fi; \
 	fi;
