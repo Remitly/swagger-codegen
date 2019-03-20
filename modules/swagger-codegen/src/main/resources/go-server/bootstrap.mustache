@@ -205,7 +205,7 @@ func (bs Bootstrap) AdminHTTPServerWithHandlers(h service.Health) *http.Server {
 
 func (bs Bootstrap) configureBugsnag(serviceName string, bugsnagReleaseStage string, bugsnagAPIKey string) {
     bugsnag.Configure(bugsnag.Configuration{
-        ProjectPackages: []string{"main", fmt.Sprintf("github.com/remitly/%s", serviceName)},
+        ProjectPackages: []string{"main", fmt.Sprintf("github.com/Remitly/%s", serviceName)},
         ReleaseStage:    bugsnagReleaseStage,
         APIKey:          bugsnagAPIKey,
     })
